@@ -70,7 +70,7 @@ class Complaint:
             with file_path.open("r") as f:
                 txt = f.read()
 
-            out.append(f"  --> {file_path}")
+            out.append(f"  --> {file_path.relative_to(str(Path('.').absolute()))}")
 
             for slice_num, (file_slice, note) in enumerate(slice_dict.items()):
 
@@ -86,7 +86,7 @@ class Complaint:
                 # Next is a snippet of text that the error comes from
                 # Immitating rustlang errors https://github.com/rust-lang/rust/issues/85681
                 # Before the line
-                for i in range(2, before_after_lines + 1):
+                for i in range(2, before_after_lines + 2):
                     if i >= len(before_slice_split):
                         break
                     out.append(f"  {line_number-i+1}| {before_slice_split[-i]}")
@@ -95,30 +95,26 @@ class Complaint:
                 out.append(
                     f"  {line_number}| {after_slice_split[0] if len(after_slice_split) == 1 else ''}"
                 )
+                line = f"  {line_number}| {' '*char_number}{'^'*slice_length}"
                 if note:
-                    if slice_length >= 2:
-                        line = f"  {line_number}| {' '*char_number}{'^'*slice_length}"
-                    else:
-                        line = f"  {line_number}| {' '*char_number}^"
-                    if note:
-                        line += "-- "
-                        out += textwrap.wrap(
-                            line + note,
-                            width=len(line) + 60,
-                            initial_indent="",
-                            subsequent_indent=" " * len(line),
-                        )
-                    else:
-                        out.append(line)
+                    line += "-- "
+                    out += textwrap.wrap(
+                        line + note,
+                        width=len(line) + 60,
+                        initial_indent="",
+                        subsequent_indent=" " * len(line),
+                    )
+                else:
+                    out.append(line)
 
                 # Lines after
-                for i in range(1, before_after_lines + 2):
+                for i in range(1, before_after_lines + 1):
                     if i >= len(after_slice_split):
                         break
                     out.append(f"  {line_number+i}| {after_slice_split[i]}")
 
                 # If this is not the end
-                if slice_num < len(slice_dict):
+                if slice_num < len(slice_dict) - 1:
                     out.append(f"  [...]")
 
         # Finally

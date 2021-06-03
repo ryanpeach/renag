@@ -1,9 +1,10 @@
 """An example of a very simple complainer."""
 
-from renag import Complainer
+from renag import Complainer, Severity
 
 
 class EasyComplainer(Complainer):
-    """Always matches everything."""
+    """Find all print statements."""
 
-    pass
+    context = r"print\(.*\)"
+    level = Severity.WARNING

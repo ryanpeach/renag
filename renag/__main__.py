@@ -146,7 +146,6 @@ for glob, contexts in all_contexts_globs.items():
     # First get all files in the glob
     for file in analyze_dir.rglob(glob):
         if file.is_file():
-            print(f"Checking file: {file}")
 
             # Open the file
             with file.open("r") as f:
@@ -183,6 +182,7 @@ for glob, contexts in all_contexts_globs.items():
                                 exitcode = max(exitcode, 0)
 
                             print(complaint.pformat(before_after_lines=context_n_lines))
+                            print()
 
 # End by exiting the program
 if N == 0:
