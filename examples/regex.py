@@ -1,3 +1,5 @@
+"""Some helpful regex variables that these complainers use."""
+
 from iregex import Regex
 from iregex.consts import ALPHA, ALPHA_NUMERIC
 

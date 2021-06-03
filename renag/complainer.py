@@ -1,19 +1,14 @@
-from typing import List, Optional
+"""This is the primary class the user will overwrite with their own complainers."""
 
 from pathlib import Path
+from typing import List, Optional
 
 from renag.complaint import Complaint
-from renag.types import (
-    OriginalSlice,
-    PartialTxt,
-    AnyRegex,
-    GlobStr,
-    Severity
-)
+from renag.customtypes import AnyRegex, GlobStr, OriginalSlice, PartialTxt, Severity
 
 
 class Complainer:
-    """Shows errors when it finds specific strings."""
+    """Emits errors when it finds specific strings."""
 
     #: A context under which to check the rules of the complaint.
     #: For instance, this could be a variable declaration, or a function definition.
@@ -44,10 +39,7 @@ class Complainer:
         pass
 
     def check(
-        self,
-        context_txt: PartialTxt,
-        original_slice: OriginalSlice,
-        file_path: Path,
+        self, context_txt: PartialTxt, original_slice: OriginalSlice, file_path: Path,
     ) -> List[Complaint]:
         """
         Checks a piece of text and returns a list of complaints.
@@ -68,6 +60,6 @@ class Complainer:
                 cls=type(self),
                 description=self.__doc__,
                 help=None,
-                severity=self.level
+                severity=self.level,
             )
         ]

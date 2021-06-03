@@ -12,7 +12,14 @@ from typing import Dict, List, Optional, Set
 from iregex import Regex
 
 from renag.complainer import Complainer
-from renag.types import GlobStr, OriginalSlice, OriginalTxt, RegexStr, Severity
+from renag.customtypes import (
+    GlobStr,
+    OriginalSlice,
+    OriginalTxt,
+    PartialTxt,
+    RegexStr,
+    Severity,
+)
 
 # ================= Utilities ===============
 
@@ -92,17 +99,24 @@ while path_ != Path("."):
     path_ = path_.parent
 
 # Get the relative module name
-load_module = "." + str(load_module_path).replace(os.sep, ".")
+load_module = str(load_module_path).replace(os.sep, ".")
 
 mod = importlib.import_module(load_module)
-all = getattr(mod, "__all__")
+if "__all__" not in mod.__dict__:
+    raise KeyError(
+        f"Please define an __all__ variable inside {load_module_path / '__init__.py'} referencing all of your Complainers. Please refer to https://docs.python.org/3/tutorial/modules.html#importing-from-a-package for help on this matter."
+    )
 all_complainers: List[Complainer] = []
-for item_name in all:
-    assert isinstance(item_name, str)
-    item = getattr(mod, item_name)
-    if issubclass(item, Complainer):
-        # Initialize the item and add it to all complainers
-        all_complainers.append(item())
+for item_name in mod.__dict__:
+    if not item_name.startswith("_"):
+        item = getattr(mod, item_name)
+        if isinstance(item, type) and issubclass(item, Complainer):
+            # Initialize the item and add it to all complainers
+            all_complainers.append(item())
+
+print("Found Complainers:")
+for c in all_complainers:
+    print("  - " + type(c).__module__ + "." + type(c).__name__)
 
 if not all_complainers:
     raise ValueError(f"No Complainers found in module {load_module}.")
@@ -115,7 +129,7 @@ for complainer in all_complainers:
     if not complainer.glob:
         complainer.glob = ["*"]
     if not complainer.context:
-        complainer.context = "*"
+        complainer.context = ".*"
 
     # Map the context to all complainers
     context_to_complainer[str(complainer.context)].append(complainer)
@@ -131,34 +145,44 @@ for glob, contexts in all_contexts_globs.items():
 
     # First get all files in the glob
     for file in analyze_dir.rglob(glob):
-        with file.open("r") as f:
-            txt = OriginalTxt(f.read())
+        if file.is_file():
+            print(f"Checking file: {file}")
 
-        # Then Iterate over all contexts
-        for context in contexts:
+            # Open the file
+            with file.open("r") as f:
+                try:
+                    txt = OriginalTxt(f.read())
+                except UnicodeDecodeError:
+                    continue
 
-            # Then Get all matches in the file
-            for match in Regex(context).compile().finditer(txt):
-                original_slice: OriginalSlice = (match.start(), match.end())
+            # Then Iterate over all contexts
+            for context in contexts:
 
-                # Then iterate over all complainers
-                for complainer in context_to_complainer[str(context)]:
+                # Then Get all matches in the file
+                for match in Regex(context).compile().finditer(txt):
+                    original_slice: OriginalSlice = match.span()
 
-                    complaints = complainer.check(
-                        context_txt=match.txt,
-                        original_slice=original_slice,
-                        file_path=file,
-                    )
+                    # Then iterate over all complainers
+                    for complainer in context_to_complainer[str(context)]:
 
-                    for complaint in complaints:
-                        N += 1
-                        if complaint.level is Severity.CRITICAL:
-                            N_CRITICAL += 1
-                            exitcode = 1
-                        else:
-                            N_WARNINGS += 1
-                            exitcode = max(exitcode, 0)
-                        print(complaint.pformat(before_after_lines=context_n_lines))
+                        complaints = complainer.check(
+                            context_txt=PartialTxt(
+                                txt[original_slice[0] : original_slice[1]]
+                            ),
+                            original_slice=original_slice,
+                            file_path=file,
+                        )
+
+                        for complaint in complaints:
+                            N += 1
+                            if complaint.level is Severity.CRITICAL:
+                                N_CRITICAL += 1
+                                exitcode = 1
+                            else:
+                                N_WARNINGS += 1
+                                exitcode = max(exitcode, 0)
+
+                            print(complaint.pformat(before_after_lines=context_n_lines))
 
 # End by exiting the program
 if N == 0:

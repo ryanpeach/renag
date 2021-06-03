@@ -7,6 +7,7 @@ authors = ["Ryan <ryanpeach@icloud.com>"]
 [tool.poetry.dependencies]
 python = "^3.7"
 bumpversion = "^0.6.0"
+iregex = "^0.1.16"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

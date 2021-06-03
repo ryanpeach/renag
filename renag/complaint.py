@@ -3,7 +3,7 @@ import textwrap
 from pathlib import Path
 from typing import Dict, List, Optional, Type
 
-from renag.types import BColors, Note, OriginalSlice, Severity
+from renag.customtypes import BColors, Note, OriginalSlice, Severity
 
 
 def _color_txt(txt: str, color: BColors) -> str:
@@ -47,9 +47,6 @@ class Complaint:
         """
         self.cls = cls
         self.file_slices = file_slices
-        for p, d in file_slices.items():
-            for s, n in d.items():
-                raise ValueError("Notes can not be longer than 60 characters.")
         self.description = description
         self.help = help
         self.level = severity
@@ -59,9 +56,10 @@ class Complaint:
         # The first line is a description of the error as well as the class and severity
         out: List[str] = textwrap.wrap(
             _color_txt(
-                f"{self.level} - {self.cls}: {self.description}",
+                f"{self.level} - {self.cls.__name__}: {self.description}",
                 BColors.WARNING if self.level == Severity.WARNING else BColors.FAIL,
             ),
+            width=120,
             initial_indent="",
             subsequent_indent="    ",
         )
@@ -72,14 +70,17 @@ class Complaint:
             with file_path.open("r") as f:
                 txt = f.read()
 
-            out.append(f"  --> {self.file_path.relative_to('.')}")
+            out.append(f"  --> {file_path}")
 
             for slice_num, (file_slice, note) in enumerate(slice_dict.items()):
 
                 before_slice_split = txt[: file_slice[0]].splitlines()
                 after_slice_split = txt[file_slice[0] :].splitlines()
-                line_number = len(before_slice_split)
-                char_number = len(before_slice_split[-1])
+                if not before_slice_split:
+                    line_number, char_number = 0, 0
+                else:
+                    line_number = len(before_slice_split) - 1
+                    char_number = len(before_slice_split[0])
                 slice_length = file_slice[1] - file_slice[0]
 
                 # Next is a snippet of text that the error comes from
@@ -88,15 +89,17 @@ class Complaint:
                 for i in range(2, before_after_lines + 1):
                     if i >= len(before_slice_split):
                         break
-                    out.append(f"  {line_number-i+1}|{before_slice_split[-i]}")
-                out.append(f"  |{after_slice_split[0]}")
+                    out.append(f"  {line_number-i+1}| {before_slice_split[-i]}")
 
                 # The Line Of
+                out.append(
+                    f"  {line_number}| {after_slice_split[0] if len(after_slice_split) == 1 else ''}"
+                )
                 if note:
                     if slice_length >= 2:
-                        line = f"  {line_number}|{' '*char_number}{'^'*slice_length}"
+                        line = f"  {line_number}| {' '*char_number}{'^'*slice_length}"
                     else:
-                        line = f"  {line_number}|{' '*char_number}^"
+                        line = f"  {line_number}| {' '*char_number}^"
                     if note:
                         line += "-- "
                         out += textwrap.wrap(
@@ -109,10 +112,10 @@ class Complaint:
                         out.append(line)
 
                 # Lines after
-                for i in range(1, before_after_lines + 1):
+                for i in range(1, before_after_lines + 2):
                     if i >= len(after_slice_split):
                         break
-                    out.append(f"  {line_number+i}|{after_slice_split[i]}")
+                    out.append(f"  {line_number+i}| {after_slice_split[i]}")
 
                 # If this is not the end
                 if slice_num < len(slice_dict):

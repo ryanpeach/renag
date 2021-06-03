@@ -1,6 +1,6 @@
 """Where all types for typing are declared."""
 
-from enum import Enum, IntEnum
+from enum import Enum
 from typing import NewType, Tuple, Union
 
 from iregex import Regex
@@ -12,11 +12,9 @@ OriginalIdx = NewType("OriginalIdx", int)
 PartialIdx = NewType("PartialIdx", int)
 
 #: Represents a slice in the original string.
-#: Last index is inclusive (unlike normal slices)
 OriginalSlice = Tuple[OriginalIdx, OriginalIdx]
 
 #: Represents a slice in a partial string.
-#: Last index is inclusive (unlike normal slices)
 PartialSlice = Tuple[PartialIdx, PartialIdx]
 
 #: Represents the original text.
@@ -38,7 +36,7 @@ GlobStr = str
 Note = str
 
 
-class Severity(IntEnum):
+class Severity(Enum):
     """
     An enum representing the severity of the complaint.
 
