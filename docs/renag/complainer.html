@@ -1,0 +1,165 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Complainer &#8212; renag 2021 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Complaint" href="complaint.html" />
+    <link rel="prev" title="renag" href="../index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-renag.complainer">
+<span id="complainer"></span><h1>Complainer<a class="headerlink" href="#module-renag.complainer" title="Permalink to this headline">¶</a></h1>
+<p>This is the primary class the user will overwrite with their own complainers.</p>
+<dl class="py class">
+<dt id="renag.complainer.Complainer">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">renag.complainer.</span></code><code class="sig-name descname"><span class="pre">Complainer</span></code><a class="headerlink" href="#renag.complainer.Complainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Emits errors when it finds specific strings.</p>
+<dl class="py attribute">
+<dt id="renag.complainer.Complainer.capture">
+<code class="sig-name descname"><span class="pre">capture</span></code><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">iregex.regex.Regex</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#renag.complainer.Complainer.capture" title="Permalink to this definition">¶</a></dt>
+<dd><p>A regex under which to check the rules of the complaint.
+For instance, this could be a variable declaration, or a function definition.
+The smaller number of unique captures you have, the faster your code will run.
+If you only have a capture, and no <cite>check</cite> method, this will define an <cite>exists</cite> complaint
+that will raise wherever this regex finds a match, and doesn’t if no match is found.
+Defaults to “*” when passed None</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="renag.complainer.Complainer.check">
+<code class="sig-name descname"><span class="pre">check</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">txt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capture_span</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#renag.complainer.Complainer.check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks a piece of text and returns a list of complaints.</p>
+<p>Needs to be overwritten by the creator of each complaint.</p>
+<p>If it is not overwritten, the default check is whether or not the capture is found.</p>
+<p>The default description is the docstring of the class.</p>
+<p>If no complaints are found, returns an empty list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>txt</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – </p></li>
+<li><p><strong>path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code>) – </p></li>
+<li><p><strong>capture_span</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<a class="reference internal" href="complaint.html#renag.complaint.Complaint" title="renag.complaint.Complaint"><code class="xref py py-class docutils literal notranslate"><span class="pre">Complaint</span></code></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="renag.complainer.Complainer.glob">
+<code class="sig-name descname"><span class="pre">glob</span></code><em class="property"><span class="pre">:</span> <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#renag.complainer.Complainer.glob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optionally define file types that this complaint runs on.
+For instance [“<a href="#id1"><span class="problematic" id="id2">*</span></a>.py”]
+Applies recursively through subdirectories.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="renag.complainer.Complainer.severity">
+<code class="sig-name descname"><span class="pre">severity</span></code><em class="property"><span class="pre">:</span> <a class="reference internal" href="custom_types.html#renag.custom_types.Severity" title="renag.custom_types.Severity"><span class="pre">renag.custom_types.Severity</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">1</span></em><a class="headerlink" href="#renag.complainer.Complainer.severity" title="Permalink to this definition">¶</a></dt>
+<dd><p>WARNING: Will return exit code 0, but will still print a warning.
+CRITICAL: Will return exit code 1</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">renag</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Complainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="complaint.html">Complaint</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_types.html">Custom Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../index.html" title="previous chapter">renag</a></li>
+      <li>Next: <a href="complaint.html" title="next chapter">Complaint</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Ryan Peach.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/renag/complainer.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
