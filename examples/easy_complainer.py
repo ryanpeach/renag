@@ -7,4 +7,5 @@ class EasyComplainer(Complainer):
     """Find all print statements."""
 
     context = r"print\(.*\)"
-    level = Severity.WARNING
+    severity = Severity.WARNING
+    glob = ["*.py"]

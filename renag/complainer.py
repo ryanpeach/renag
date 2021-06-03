@@ -1,7 +1,7 @@
 """This is the primary class the user will overwrite with their own complainers."""
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from renag.complaint import Complaint
 from renag.customtypes import AnyRegex, GlobStr, OriginalSlice, PartialTxt, Severity
@@ -16,17 +16,17 @@ class Complainer:
     #: If you only have a context, and no `check` method, this will define an `exists` complaint
     #: that will raise wherever this regex finds a match, and doesn't if no match is found.
     #: Defaults to "*" when passed None
-    context: Optional[AnyRegex] = None
+    context: AnyRegex
 
     #: Optionally define file types that this complaint runs on.
     #: For instance ["*.py"]
     #: Applies recursively through subdirectories.
     #: Defaults to ["*"] when passed None
-    glob: Optional[List[GlobStr]] = None
+    glob: List[GlobStr]
 
     #: WARNING: Will return exit code 0, but will still print a warning.
     #: CRITICAL: Will return exit code 1
-    level: Severity = Severity.CRITICAL
+    severity: Severity = Severity.CRITICAL
 
     def __init__(self) -> None:
         """
@@ -60,6 +60,6 @@ class Complainer:
                 cls=type(self),
                 description=self.__doc__,
                 help=None,
-                severity=self.level,
+                severity=self.severity,
             )
         ]

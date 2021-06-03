@@ -30,7 +30,7 @@ class Complaint:
     file_path: Path
 
     #: The severity of the complaint
-    level: Severity
+    severity: Severity
 
     def __init__(
         self,
@@ -49,15 +49,15 @@ class Complaint:
         self.file_slices = file_slices
         self.description = description
         self.help = help
-        self.level = severity
+        self.severity = severity
 
     def pformat(self, before_after_lines: int = 1) -> str:
         """A way to get the complaints pretty formatted string for printing."""
         # The first line is a description of the error as well as the class and severity
         out: List[str] = textwrap.wrap(
             _color_txt(
-                f"{self.level} - {self.cls.__name__}: {self.description}",
-                BColors.WARNING if self.level == Severity.WARNING else BColors.FAIL,
+                f"{self.severity} - {self.cls.__name__}: {self.description}",
+                BColors.WARNING if self.severity == Severity.WARNING else BColors.FAIL,
             ),
             width=120,
             initial_indent="",
@@ -72,7 +72,7 @@ class Complaint:
 
             out.append(f"  --> {file_path.relative_to(str(Path('.').absolute()))}")
 
-            for slice_num, (file_slice, note) in enumerate(slice_dict.items()):
+            for slice_num, (file_slice, note) in enumerate(sorted(slice_dict.items())):
 
                 before_slice_split = txt[: file_slice[0]].splitlines()
                 after_slice_split = txt[file_slice[0] :].splitlines()

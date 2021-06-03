@@ -125,11 +125,9 @@ if not all_complainers:
 all_contexts_globs: Dict[GlobStr, Set[RegexStr]] = defaultdict(set)
 context_to_complainer: Dict[RegexStr, List[Complainer]] = defaultdict(list)
 for complainer in all_complainers:
-    # Set default values for glob and context
+    # Make sure that glob is not an empty list
     if not complainer.glob:
-        complainer.glob = ["*"]
-    if not complainer.context:
-        complainer.context = ".*"
+        raise ValueError(f"Empty glob inside {complainer}: {complainer.glob}")
 
     # Map the context to all complainers
     context_to_complainer[str(complainer.context)].append(complainer)
@@ -174,7 +172,7 @@ for glob, contexts in all_contexts_globs.items():
 
                         for complaint in complaints:
                             N += 1
-                            if complaint.level is Severity.CRITICAL:
+                            if complaint.severity is Severity.CRITICAL:
                                 N_CRITICAL += 1
                                 exitcode = 1
                             else:
