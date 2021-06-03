@@ -6,7 +6,6 @@ authors = ["Ryan <ryanpeach@icloud.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-bumpversion = "^0.6.0"
 iregex = "^0.1.16"
 
 [tool.poetry.dev-dependencies]
@@ -23,6 +22,7 @@ codecov = "^2.1.11"
 m2r2 = "^0.2.7"
 sphinx_autodoc_typehints = "^1.12.0"
 pydocstyle = "^6.0.0"
+bumpversion = "^0.6.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -31,3 +31,6 @@ build-backend = "poetry.core.masonry.api"
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+
+[tool.poetry.scripts]
+renag = 'renag.__main__:main'

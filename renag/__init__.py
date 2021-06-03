@@ -1,6 +1,8 @@
 """The file used when importing renag as a library for complaint modules."""
-
 from renag.complainer import Complainer, Complaint
-from renag.customtypes import Severity
+from renag.custom_types import Severity, Span
+from renag.utils import get_lines_and_numbers
 
-__all__ = ["Complainer", "Complaint", "Severity"]
+__version__ = "0.1.0"
+
+__all__ = ["Complainer", "Complaint", "Severity", "Span", "get_lines_and_numbers"]

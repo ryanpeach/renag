@@ -3,12 +3,8 @@ import textwrap
 from pathlib import Path
 from typing import Dict, List, Optional, Type
 
-from renag.customtypes import BColors, Note, OriginalSlice, Severity
-
-
-def color_txt(txt: str, color: BColors) -> str:
-    """Color some text."""
-    return f"{color.value}{txt}{BColors.ENDC.value}"
+from renag.custom_types import BColors, Note, Severity, Span
+from renag.utils import color_txt
 
 
 class Complaint:
@@ -23,8 +19,8 @@ class Complaint:
     #: A string representation of a way to fix the problem
     help: Optional[str]
 
-    #: The slices in all the relevant files along with a note for why they are relevant
-    file_slice: Dict[Path, Dict[OriginalSlice, Optional[Note]]]
+    #: The spans in all the relevant files along with a note for why they are relevant
+    file_spans: Dict[Path, Dict[Span, Optional[Note]]]
 
     #: The filepath of the orginal text.
     file_path: Path
@@ -35,7 +31,7 @@ class Complaint:
     def __init__(
         self,
         cls: Type,
-        file_slices: Dict[Path, Dict[OriginalSlice, Optional[Note]]],
+        file_spans: Dict[Path, Dict[Span, Optional[Note]]],
         description: str,
         severity: Severity,
         help: Optional[str] = None,
@@ -46,12 +42,12 @@ class Complaint:
         TODO: Make this more complicated for better formatting of complaint messages.
         """
         self.cls = cls
-        self.file_slices = file_slices
+        self.file_spans = file_spans
         self.description = description
         self.help = help
         self.severity = severity
 
-    def pformat(self, before_after_lines: int = 1) -> str:
+    def pformat(self, context_nb_lines: int = 1) -> str:
         """A way to get the complaints pretty formatted string for printing."""
         # The first line is a description of the error as well as the class and severity
         out: List[str] = textwrap.wrap(
@@ -64,7 +60,7 @@ class Complaint:
             subsequent_indent="    ",
         )
 
-        for file_path, slice_dict in self.file_slices.items():
+        for file_path, slice_dict in self.file_spans.items():
 
             # Load in the text of the file
             with file_path.open("r") as f:
@@ -81,16 +77,25 @@ class Complaint:
                 last_line_number = (
                     txt[file_slice[0] : file_slice[1]].count("\n") + first_line_number
                 )
-                left_indent = file_slice[0] - txt[: file_slice[0]].rindex("\n") - 1
-                right_indent = txt[file_slice[1] :].index("\n")
+                try:
+                    left_indent: int = (
+                        file_slice[0] - txt[: file_slice[0]].rindex("\n") - 1
+                    )
+                except ValueError:
+                    left_indent = file_slice[0] - 1
+                try:
+                    right_indent: int = txt[file_slice[1] :].index("\n")
+                except ValueError:
+                    right_indent = 0
                 slice_length = file_slice[1] - file_slice[0]
                 left, right = left_indent, left_indent + slice_length
+                # print(left, right)  # This is a debug statement. It should be captured by EasyPrintComplainer but not by ComplexPrintComplainer
 
                 # Next is a snippet of text that the error comes from
                 # Immitating rustlang errors https://github.com/rust-lang/rust/issues/85681
                 # Before the line
                 for this_line_num, line in numbered_txt_split[
-                    max(0, first_line_number - before_after_lines) : first_line_number
+                    max(0, first_line_number - context_nb_lines) : first_line_number
                 ]:
                     out.append(f"{str(this_line_num).rjust(6)}| {line}")
 
@@ -139,7 +144,7 @@ class Complaint:
 
                 # Lines after
                 for this_line_num, line in numbered_txt_split[
-                    last_line_number + 1 : last_line_number + 1 + before_after_lines
+                    last_line_number + 1 : last_line_number + 1 + context_nb_lines
                 ]:
                     out.append(f"{str(this_line_num).rjust(6)}| {line}")
 

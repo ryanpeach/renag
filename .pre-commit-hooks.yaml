@@ -1,0 +1,8 @@
+-   id: renag
+    name: renag
+    description: Runs custom regex based lint commands on a repo.
+    entry: renag
+    language: python
+    types: [file]
+    verbose: true
+    pass_filenames: false

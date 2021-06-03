@@ -24,12 +24,13 @@ install:
 jobs:
   include:
     - stage: test
-      script: poetry run coverage run -m pytest iregex
+      script: poetry run coverage run -m pytest renag
       after_success:
         - poetry run codecov
     - script: poetry run mypy iregex
     - script: poetry run flake8 iregex
     - script: poetry run make doctest
+    - script: poetry run renag --load_module examples
 
     - stage: deploy
       script: skip
@@ -40,7 +41,7 @@ jobs:
         script: poetry publish --build
         on:
           tags: true
-          repo: ryanpeach/py_idiomatic_regex
+          repo: ryanpeach/renag
           branch: master
     - script: skip
       before_deploy:
@@ -51,12 +52,12 @@ jobs:
         - git checkout -b docs
         - git add docs/
         - git commit -m "Travis documentation build."
-        - git remote add origin-pages https://${GITHUB_TOKEN}@github.com/ryanpeach/py_idiomatic_regex.git > /dev/null 2>&1
+        - git remote add origin-pages https://${GITHUB_TOKEN}@github.com/ryanpeach/renag.git > /dev/null 2>&1
       deploy:
         provider: script
         skip_cleanup: true
         script: git push --quiet --force --set-upstream origin-pages docs
         on:
           tags: true
-          repo: ryanpeach/py_idiomatic_regex
+          repo: ryanpeach/renag
           branch: master

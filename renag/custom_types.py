@@ -1,27 +1,12 @@
 """Where all types for typing are declared."""
 
 from enum import Enum
-from typing import NewType, Tuple, Union
+from typing import Tuple, Union
 
 from iregex import Regex
 
-#: Represents an index in the original string.
-OriginalIdx = NewType("OriginalIdx", int)
-
-#: Represents an index in a partial section of the original string.
-PartialIdx = NewType("PartialIdx", int)
-
-#: Represents a slice in the original string.
-OriginalSlice = Tuple[OriginalIdx, OriginalIdx]
-
-#: Represents a slice in a partial string.
-PartialSlice = Tuple[PartialIdx, PartialIdx]
-
-#: Represents the original text.
-OriginalTxt = NewType("OriginalTxt", str)
-
-#: Represents a partial section of the original text.
-PartialTxt = NewType("PartialTxt", str)
+#: Represents a the beginning and end of a section of string.
+Span = Tuple[int, int]
 
 #: Any string representing Regex
 RegexStr = str
