@@ -12,7 +12,9 @@ from typing import Dict, List, Optional, Set
 from iregex import Regex
 
 from renag.complainer import Complainer
+from renag.complaint import color_txt
 from renag.customtypes import (
+    BColors,
     GlobStr,
     OriginalSlice,
     OriginalTxt,
@@ -137,7 +139,6 @@ for complainer in all_complainers:
         all_contexts_globs[g].add(str(complainer.context))
 
 # Iterate over all contexts and globs
-exitcode: int = 0
 N, N_WARNINGS, N_CRITICAL = 0, 0, 0
 for glob, contexts in all_contexts_globs.items():
 
@@ -174,17 +175,28 @@ for glob, contexts in all_contexts_globs.items():
                             N += 1
                             if complaint.severity is Severity.CRITICAL:
                                 N_CRITICAL += 1
-                                exitcode = 1
                             else:
                                 N_WARNINGS += 1
-                                exitcode = max(exitcode, 0)
 
                             print(complaint.pformat(before_after_lines=context_n_lines))
                             print()
 
 # End by exiting the program
 if N == 0:
-    print("No complaints. Enjoy the rest of your day!")
-else:
-    print(f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.")
-exit(exitcode)
+    print(color_txt("No complaints. Enjoy the rest of your day!", BColors.OKGREEN))
+    exit(0)
+if N_WARNINGS > 0 and N_CRITICAL == 0:
+    print(
+        color_txt(
+            f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
+            BColors.WARNING,
+        )
+    )
+    exit(0)
+print(
+    color_txt(
+        f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
+        BColors.WARNING,
+    )
+)
+exit(1)
