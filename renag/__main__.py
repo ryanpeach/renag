@@ -46,8 +46,8 @@ def main() -> None:
         raise ValueError(f"{args.analyze_dir} is not a directory.")
 
     # load_module_path = Path(args.load_module).relative_to(".")
-    load_module_path: Path = Path(args.load_module).absolute()
-    analyze_dir: Path = Path(args.analyze_dir).absolute()
+    load_module_path = Path(args.load_module).absolute()
+    analyze_dir      = Path(args.analyze_dir).absolute()
     context_nb_lines = max(int(args.n), 0)
 
     all_complainers: List[Complainer] = []
@@ -64,12 +64,10 @@ def main() -> None:
                 if issubclass(obj, Complainer) and obj != Complainer:
                     all_complainers.append(obj())
 
-    # print("Found Complainers:")
-    # for c in all_complainers:
-    #     print(f"  - ({load_module_path.parent}) {type(c).__name__}")
-
     if not all_complainers:
         raise ValueError(f"No Complainers found in module from {load_module_path}.")
+
+    print(f"Running renag analyzer on '{analyze_dir}'..")
 
     # Get all the captures and globs of all complainers
     all_captures_globs: Dict[GlobStr, Set[RegexStr]] = defaultdict(set)
