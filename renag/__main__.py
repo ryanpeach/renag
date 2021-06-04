@@ -48,7 +48,7 @@ def main() -> None:
     # load_module_path = Path(args.load_module).relative_to(".")
     load_module_path: Path = Path(args.load_module).absolute()
     analyze_dir: Path = Path(args.analyze_dir).absolute()
-    context_nb_lines = max(int(args.n), 1)
+    context_nb_lines = max(int(args.n), 0)
 
     all_complainers: List[Complainer] = []
     # For all files in the target folder.

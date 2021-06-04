@@ -67,7 +67,7 @@ class Complaint:
                 txt = f.read()
 
             txt_split = txt.splitlines()
-            numbered_txt_split = list(enumerate(txt_split))
+            numbered_txt_split = [(i + 1, line) for i, line in  enumerate(txt_split)]
 
             out.append(f"  --> {file_path.relative_to(str(Path('.').absolute()))}")
 
@@ -75,14 +75,9 @@ class Complaint:
                 linesep = get_line_sep(txt)
                 is_multiline_check = linesep in txt[file_slice[0] : file_slice[1]]
                 first_line_number = txt[: file_slice[0]].count(linesep)
-                last_line_number = (
-                    txt[file_slice[0] : file_slice[1]].count(linesep)
-                    + first_line_number
-                )
+                last_line_number = txt[file_slice[0] : file_slice[1]].count(linesep) + first_line_number
                 try:
-                    left_indent: int = (
-                        file_slice[0] - txt[: file_slice[0]].rindex(linesep) - 1
-                    )
+                    left_indent: int = file_slice[0] - txt[: file_slice[0]].rindex(linesep) - 1
                 except ValueError:
                     left_indent = file_slice[0] - 1
                 try:
@@ -102,38 +97,20 @@ class Complaint:
                     out.append(f"{str(this_line_num).rjust(6)}| {line}")
 
                 # The Lines of
-                for this_line_num, line in numbered_txt_split[
-                    first_line_number : (last_line_number + 1)
-                ]:
+                for this_line_num, line in numbered_txt_split[first_line_number : (last_line_number + 1)]:
                     if not is_multiline_check:
-                        out.append(
-                            f"{str(this_line_num).rjust(6)}| {line[:left]}{color_txt(line[left:right], BColors.OKCYAN)}{line[right:]}"
-                        )
-                        out.append(
-                            f"{str(this_line_num).rjust(6)}| {' '*left_indent}{color_txt('^'*slice_length, BColors.OKCYAN)}"
-                        )
+                        out.append(f"{str(this_line_num).rjust(6)}| {line[:left]}{color_txt(line[left:right], BColors.OKCYAN)}{line[right:]}")
+                        out.append(f"{      ' ' * 6 + ' ' * 2      }{' '*left_indent}{color_txt('^'*slice_length, BColors.OKCYAN)}")
                     else:
                         if this_line_num == first_line_number:
-                            out.append(
-                                f"{str(this_line_num).rjust(6)}| {line[:left]}{color_txt(line[left:], BColors.OKCYAN)}"
-                            )
-                            out.append(
-                                f"{str(this_line_num).rjust(6)}| {' '*left_indent}{color_txt('^'*(len(line)-left_indent), BColors.OKCYAN)}"
-                            )
+                            out.append(f"{str(this_line_num).rjust(6)}| {line[:left]}{color_txt(line[left:], BColors.OKCYAN)}")
+                            out.append(f"{      ' ' * 6 + ' ' * 2      }{' '*left_indent}{color_txt('^'*(len(line)-left_indent), BColors.OKCYAN)}")
                         elif this_line_num == last_line_number:
-                            out.append(
-                                f"{str(this_line_num).rjust(6)}| {color_txt(line[:right], BColors.OKCYAN)}{line[right:]}"
-                            )
-                            out.append(
-                                f"{str(this_line_num).rjust(6)}| {color_txt('^'*(len(line)-right_indent), BColors.OKCYAN)}"
-                            )
+                            out.append(f"{str(this_line_num).rjust(6)}| {color_txt(line[:right], BColors.OKCYAN)}{line[right:]}")
+                            out.append(f"{      ' ' * 6 + ' ' * 2      }{color_txt('^'*(len(line)-right_indent), BColors.OKCYAN)}")
                         else:
-                            out.append(
-                                f"{str(this_line_num).rjust(6)}| {color_txt(line, BColors.OKCYAN)}"
-                            )
-                            out.append(
-                                f"{str(this_line_num).rjust(6)}| {color_txt('^'*len(line), BColors.OKCYAN)}"
-                            )
+                            out.append(f"{str(this_line_num).rjust(6)}| {color_txt(line, BColors.OKCYAN)}")
+                            out.append(f"{      ' ' * 6 + ' ' * 2      }{color_txt('^'*len(line), BColors.OKCYAN)}")
 
                 if note:
                     line = out.pop()
@@ -146,7 +123,7 @@ class Complaint:
 
                 # Lines after
                 for this_line_num, line in numbered_txt_split[
-                    last_line_number + 1 : last_line_number + 1 + context_nb_lines
+                    last_line_number + 1: last_line_number + 1 + context_nb_lines
                 ]:
                     out.append(f"{str(this_line_num).rjust(6)}| {line}")
 
