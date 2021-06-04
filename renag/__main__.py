@@ -64,9 +64,9 @@ def main() -> None:
                 if issubclass(obj, Complainer) and obj != Complainer:
                     all_complainers.append(obj())
 
-    print("Found Complainers:")
-    for c in all_complainers:
-        print(f"  - ({load_module_path.parent}) {type(c).__name__}")
+    # print("Found Complainers:")
+    # for c in all_complainers:
+    #     print(f"  - ({load_module_path.parent}) {type(c).__name__}")
 
     if not all_complainers:
         raise ValueError(f"No Complainers found in module from {load_module_path}.")
@@ -133,7 +133,7 @@ def main() -> None:
     # End by exiting the program
     N = N_WARNINGS + N_CRITICAL
     if not N:
-        print(color_txt("No complaints. Enjoy the rest of your day!", BColors.OKGREEN))
+        print(color_txt("Renag finished with no complaints.", BColors.OKGREEN))
         exit(0)
 
     print(
