@@ -1,10 +1,10 @@
 """
 This module runs the code from the commandline.
 """
-
 import argparse
 import importlib
 import os
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set
@@ -36,7 +36,7 @@ def main() -> None:
     parser.add_argument(
         "--n",
         type=int,
-        default=1,
+        default=5,
         help="The number of lines before and after an error to show in context.",
     )
     args = parser.parse_args()
@@ -84,7 +84,7 @@ def main() -> None:
     if not all_complainers:
         raise ValueError(f"No Complainers found in module {load_module}.")
 
-    # Get all the contexts and globs of all complainers
+    # Get all the captures and globs of all complainers
     all_captures_globs: Dict[GlobStr, Set[RegexStr]] = defaultdict(set)
     capture_to_complainer: Dict[RegexStr, List[Complainer]] = defaultdict(list)
     for complainer in all_complainers:
@@ -99,9 +99,9 @@ def main() -> None:
         for g in complainer.glob:
             all_captures_globs[g].add(str(complainer.capture))
 
-    # Iterate over all contexts and globs
+    # Iterate over all captures and globs
     N, N_WARNINGS, N_CRITICAL = 0, 0, 0
-    for glob, contexts in all_captures_globs.items():
+    for glob, captures in all_captures_globs.items():
 
         # First get all files in the glob
         for file in analyze_dir.rglob(glob):
@@ -114,15 +114,17 @@ def main() -> None:
                     except UnicodeDecodeError:
                         continue
 
-                # Then Iterate over all contexts
-                for context in contexts:
+                # Then Iterate over all captures
+                for capture in captures:
 
                     # Then Get all matches in the file
-                    for match in Regex(context).compile().finditer(txt):
+                    for match in (
+                        Regex(capture).compile(re.MULTILINE | re.DOTALL).finditer(txt)
+                    ):
                         span: Span = match.span()
 
                         # Then iterate over all complainers
-                        for complainer in capture_to_complainer[str(context)]:
+                        for complainer in capture_to_complainer[str(capture)]:
 
                             complaints = complainer.check(
                                 txt=txt, capture_span=span, path=file,

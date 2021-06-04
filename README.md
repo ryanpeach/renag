@@ -5,7 +5,7 @@
 
 [Documentation Available Here](https://ryanpeach.github.io/renag)
 
-Short for Regex (re) Nag (like "one who complains").
+Short for **Regex** (re) **Nag** (like "one who complains").
 
 A Regex based linter tool that works for any language and works exclusively with custom linting rules.
 
@@ -24,7 +24,7 @@ class PrintComplainer(Complainer):
     glob = ["*.py"]
 ```
 
-This has 3 fundamental parts:
+This has 4 fundamental parts:
 
 * `docstring` - The docstring of the class automatically becomes the description of the error.
 * `capture` - A regex statement that, if matched, will raise the complaint.
@@ -76,14 +76,12 @@ Then add the following to your `.pre-commit-hooks.yaml` file:
 
 ```yaml
 - repo: https://github.com/ryanpeach/renag
-  rev: '0.2.2'
+  rev: "0.2.2"
   hooks:
     - id: renag
       args:
         - "--load_module"
         - "complainers"
-        - "--n"
-        - "5"
 ```
 
 Run `renag --help` to see a list of command line arguments you can add to the hook.
@@ -113,4 +111,3 @@ Severity.WARNING - EasyPrintComplainer: Print statements can slow down code.
 
 All regex captures in this module default to using `iregex`.
 `iregex` can help make your regex more understandable to readers, and allow you to compose large regex statements (see `examples/regex.py` for examples).
-`iregex` defaults to multiline regex using the `re` module.

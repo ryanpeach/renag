@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from typing import List
 
+from iregex import Regex
+
 from renag import Complainer, Complaint, Span, get_lines_and_numbers
 from renag.custom_types import Severity
 
@@ -11,7 +13,7 @@ from renag.custom_types import Severity
 class ReadmeReferenceComplainer(Complainer):
     """Checks if a class is in the readme."""
 
-    capture = r"class\s+\w+:"
+    capture = Regex("class").whitespace() + "\w+" + ":"
     glob = ["*.py"]
     severity = Severity.WARNING
 

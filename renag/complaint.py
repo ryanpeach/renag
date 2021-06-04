@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Type
 
 from renag.custom_types import BColors, Note, Severity, Span
-from renag.utils import color_txt
+from renag.utils import color_txt, get_line_sep
 
 
 class Complaint:
@@ -72,19 +72,21 @@ class Complaint:
             out.append(f"  --> {file_path.relative_to(str(Path('.').absolute()))}")
 
             for slice_num, (file_slice, note) in enumerate(sorted(slice_dict.items())):
-                is_multiline_check = "\n" in txt[file_slice[0] : file_slice[1]]
-                first_line_number = txt[: file_slice[0]].count("\n")
+                linesep = get_line_sep(txt)
+                is_multiline_check = linesep in txt[file_slice[0] : file_slice[1]]
+                first_line_number = txt[: file_slice[0]].count(linesep)
                 last_line_number = (
-                    txt[file_slice[0] : file_slice[1]].count("\n") + first_line_number
+                    txt[file_slice[0] : file_slice[1]].count(linesep)
+                    + first_line_number
                 )
                 try:
                     left_indent: int = (
-                        file_slice[0] - txt[: file_slice[0]].rindex("\n") - 1
+                        file_slice[0] - txt[: file_slice[0]].rindex(linesep) - 1
                     )
                 except ValueError:
                     left_indent = file_slice[0] - 1
                 try:
-                    right_indent: int = txt[file_slice[1] :].index("\n")
+                    right_indent: int = txt[file_slice[1] :].index(linesep)
                 except ValueError:
                     right_indent = 0
                 slice_length = file_slice[1] - file_slice[0]

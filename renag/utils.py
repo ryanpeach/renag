@@ -10,20 +10,32 @@ def color_txt(txt: str, color: BColors) -> str:
     return f"{color.value}{txt}{BColors.ENDC.value}"
 
 
+def get_line_sep(txt: str) -> str:
+    r"""Gets the line seperator in a block of text. Defaults to \n"""
+    if "\r\n" in txt:
+        linesep = "\r\n"
+    elif "\r" in txt:
+        linesep = "\r"
+    else:
+        linesep = "\n"
+    return linesep
+
+
 def get_lines_and_numbers(txt: str, span: Span) -> Tuple[List[str], List[int]]:
     """
     Gets the line numbers from some text and a span.
 
     Returns a list of lines (represented as strings) and a list of line numbers (represented as int).
     """
-    first_line_num = txt[: span[0]].count("\n")
-    last_line_num = first_line_num + txt[span[0] : span[1]].count("\n")
+    linesep = get_line_sep(txt)
+    first_line_num = txt[: span[0]].count(linesep)
+    last_line_num = first_line_num + txt[span[0] : span[1]].count(linesep)
     try:
-        first_line_index: Optional[int] = txt[: span[0]].rindex("\n") + 1
+        first_line_index: Optional[int] = txt[: span[0]].rindex(linesep) + 1
     except ValueError:
         first_line_index = None
     try:
-        last_line_index: Optional[int] = txt[span[1] :].index("\n") + span[1]
+        last_line_index: Optional[int] = txt[span[1] :].index(linesep) + span[1]
     except ValueError:
         last_line_index = None
     section = txt[first_line_index:last_line_index].splitlines()

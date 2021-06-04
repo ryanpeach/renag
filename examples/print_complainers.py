@@ -3,13 +3,15 @@
 from pathlib import Path
 from typing import List
 
+from iregex import Regex
+
 from renag import Complainer, Complaint, Severity, Span, get_lines_and_numbers
 
 
 class EasyPrintComplainer(Complainer):
     """Print statements can slow down code."""
 
-    capture = r"print\(.*\)"
+    capture = Regex("print").whitespace() + (Regex("\(").make_lookahead())
     severity = Severity.WARNING
     glob = ["*.py"]
 
@@ -17,7 +19,7 @@ class EasyPrintComplainer(Complainer):
 class ComplexPrintComplainer(Complainer):
     """Print statements can slow down code."""
 
-    capture = r"print\(.*\)"
+    capture = Regex("print").whitespace() + (Regex("\(").make_lookahead())
     severity = Severity.WARNING
     glob = ["*.py"]
 
