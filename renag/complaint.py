@@ -52,7 +52,7 @@ class Complaint:
         # The first line is a description of the error as well as the class and severity
         out: List[str] = textwrap.wrap(
             color_txt(
-                f"{self.severity} - {self.cls.__name__}: {self.description}",
+                f"{self.severity.name} - {self.cls.__name__}: {self.description}",
                 BColors.WARNING if self.severity == Severity.WARNING else BColors.FAIL,
             ),
             width=120,
