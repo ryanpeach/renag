@@ -3,6 +3,7 @@ This module runs the code from the commandline.
 """
 import argparse
 import importlib
+import inspect
 import os
 import re
 from collections import defaultdict
@@ -44,45 +45,31 @@ def main() -> None:
     if not args.analyze_dir.is_dir():
         raise ValueError(f"{args.analyze_dir} is not a directory.")
 
-    load_module_path = Path(args.load_module).relative_to(".")
-    analyze_dir = Path(args.analyze_dir).absolute()
+    # load_module_path = Path(args.load_module).relative_to(".")
+    load_module_path: Path = Path(args.load_module).absolute()
+    analyze_dir: Path = Path(args.analyze_dir).absolute()
     context_nb_lines = max(int(args.n), 1)
 
-    # Check for an __init__.py
-    path_ = load_module_path
-    if path_ == Path("."):
-        raise ValueError(f"load_module should be a subdirectory, not the current path.")
-    if not path_.is_dir():
-        raise ValueError(f"{path_} is not a directory.")
-    while path_ != Path("."):
-        if not (path_ / "__init__.py").is_file():
-            raise ValueError(
-                f"{(load_module_path / '__init__.py')} does not exist. Should be a python module."
-            )
-        path_ = path_.parent
-
-    # Get the relative module name
-    load_module = str(load_module_path).replace(os.sep, ".")
-
-    mod = importlib.import_module(load_module)
-    if "__all__" not in mod.__dict__:
-        raise KeyError(
-            f"Please define an __all__ variable inside {load_module_path / '__init__.py'} referencing all of your Complainers. Please refer to https://docs.python.org/3/tutorial/modules.html#importing-from-a-package for help on this matter."
-        )
     all_complainers: List[Complainer] = []
-    for item_name in mod.__dict__:
-        if not item_name.startswith("_"):
-            item = getattr(mod, item_name)
-            if isinstance(item, type) and issubclass(item, Complainer):
-                # Initialize the item and add it to all complainers
-                all_complainers.append(item())
+    # For all files in the target folder.
+    for file in os.listdir(load_module_path):
+        # If file starts from letter and ends with .py
+        if file[0].isalpha() and file.endswith(".py"):
+            # Import each file as a module from it's full path.
+            spec = importlib.util.spec_from_file_location(".", load_module_path / file)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            # For each object definition that is a class.
+            for _name, obj in inspect.getmembers(mod, inspect.isclass):
+                if issubclass(obj, Complainer) and obj != Complainer:
+                    all_complainers.append(obj())
 
     print("Found Complainers:")
     for c in all_complainers:
-        print("  - " + type(c).__module__ + "." + type(c).__name__)
+        print(f"  - ({load_module_path.parent}) {type(c).__name__}")
 
     if not all_complainers:
-        raise ValueError(f"No Complainers found in module {load_module}.")
+        raise ValueError(f"No Complainers found in module from {load_module_path}.")
 
     # Get all the captures and globs of all complainers
     all_captures_globs: Dict[GlobStr, Set[RegexStr]] = defaultdict(set)
@@ -100,7 +87,7 @@ def main() -> None:
             all_captures_globs[g].add(str(complainer.capture))
 
     # Iterate over all captures and globs
-    N, N_WARNINGS, N_CRITICAL = 0, 0, 0
+    N_WARNINGS, N_CRITICAL = 0, 0
     for glob, captures in all_captures_globs.items():
 
         # First get all files in the glob
@@ -127,40 +114,40 @@ def main() -> None:
                         for complainer in capture_to_complainer[str(capture)]:
 
                             complaints = complainer.check(
-                                txt=txt, capture_span=span, path=file,
+                                txt=txt, capture_span=span, path=file
                             )
 
                             for complaint in complaints:
-                                N += 1
-                                if complaint.severity is Severity.CRITICAL:
+                                if complaint.severity == Severity.CRITICAL:
                                     N_CRITICAL += 1
                                 else:
                                     N_WARNINGS += 1
 
                                 print(
-                                    complaint.pformat(context_nb_lines=context_nb_lines)
+                                    complaint.pformat(
+                                        context_nb_lines=context_nb_lines
+                                    ),
+                                    end="\n\n",
                                 )
-                                print()
 
     # End by exiting the program
-    if N == 0:
+    N = N_WARNINGS + N_CRITICAL
+    if not N:
         print(color_txt("No complaints. Enjoy the rest of your day!", BColors.OKGREEN))
         exit(0)
-    if N_WARNINGS > 0 and N_CRITICAL == 0:
-        print(
-            color_txt(
-                f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
-                BColors.WARNING,
-            )
-        )
-        exit(0)
+
     print(
         color_txt(
             f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
             BColors.WARNING,
         )
     )
-    exit(1)
+
+    # If has critical errors - exit with non-zero code..
+    if N_CRITICAL != 0:
+        exit(1)
+    # ..else quit early.
+    exit(0)
 
 
 if __name__ == "__main__":

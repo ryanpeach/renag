@@ -1,5 +1,3 @@
-"""An example of a very simple complainer."""
-
 from pathlib import Path
 from typing import List
 
@@ -9,16 +7,12 @@ from renag import Complainer, Complaint, Severity, Span, get_lines_and_numbers
 
 
 class EasyPrintComplainer(Complainer):
-    """Print statements can slow down code."""
-
     capture = Regex("print").whitespace() + (Regex("\(").make_lookahead())
     severity = Severity.WARNING
     glob = ["*.py"]
 
 
 class ComplexPrintComplainer(Complainer):
-    """Print statements can slow down code."""
-
     capture = Regex("print").whitespace() + (Regex("\(").make_lookahead())
     severity = Severity.WARNING
     glob = ["*.py"]
