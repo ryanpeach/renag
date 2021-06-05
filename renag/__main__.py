@@ -103,17 +103,13 @@ def main() -> None:
                 for capture in captures:
 
                     # Then Get all matches in the file
-                    for match in (
-                        Regex(capture).compile(re.MULTILINE | re.DOTALL).finditer(txt)
-                    ):
+                    for match in Regex(capture).compile(re.MULTILINE | re.DOTALL).finditer(txt):
                         span: Span = match.span()
 
                         # Then iterate over all complainers
                         for complainer in capture_to_complainer[str(capture)]:
 
-                            complaints = complainer.check(
-                                txt=txt, capture_span=span, path=file
-                            )
+                            complaints = complainer.check(txt=txt, capture_span=span, path=file)
 
                             for complaint in complaints:
                                 if complaint.severity == Severity.CRITICAL:
@@ -127,6 +123,27 @@ def main() -> None:
                                     ),
                                     end="\n\n",
                                 )
+
+    # In the end, we try to call .finalize() on each complainer. Its purpose is
+    # to allow for complainers to have methods that will be called once, in the end.
+    for capture in captures:
+        for complainer in capture_to_complainer[str(capture)]:
+            if not hasattr(complainer, "finalize"):
+                continue
+
+            complaints = complainer.finalize()
+            for complaint in complaints:
+                if complaint.severity == Severity.CRITICAL:
+                    N_CRITICAL += 1
+                else:
+                    N_WARNINGS += 1
+
+                print(
+                    complaint.pformat(
+                        context_nb_lines=context_nb_lines
+                    ),
+                    end="\n\n",
+                )
 
     # End by exiting the program
     N = N_WARNINGS + N_CRITICAL
