@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import List
 
-from iregex import Regex
+from pyparsing import Literal, nestedExpr
 
 from renag import Complainer, Complaint, Severity, Span, get_lines_and_numbers
 
@@ -11,7 +11,7 @@ from renag import Complainer, Complaint, Severity, Span, get_lines_and_numbers
 class EasyPrintComplainer(Complainer):
     """Print statements can slow down code."""
 
-    capture = Regex("print").whitespace() + (Regex("\(").make_lookahead())
+    capture = r"(?<=\s)print\s*(?=\()"  # An example of pure regex
     severity = Severity.WARNING
     glob = ["*.py"]
 
@@ -19,12 +19,13 @@ class EasyPrintComplainer(Complainer):
 class ComplexPrintComplainer(Complainer):
     """Print statements can slow down code."""
 
-    capture = Regex("print").whitespace() + (Regex("\(").make_lookahead())
+    capture = Literal("print") + nestedExpr("(", ")")  # An example of pyparsing
     severity = Severity.WARNING
     glob = ["*.py"]
 
     def check(self, txt: str, path: Path, capture_span: Span) -> List[Complaint]:
         """Check that the print statement is not commented out before complaining."""
+        print(txt[capture_span[0] : capture_span[1]])
         # Get the line number
         lines, line_numbers = get_lines_and_numbers(txt, capture_span)
 

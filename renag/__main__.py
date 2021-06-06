@@ -4,15 +4,16 @@ This module runs the code from the commandline.
 import argparse
 import importlib
 import os
-import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Union
 
+import regex
 from iregex import Regex
+from pyparsing import ParserElement
 
 from renag.complainer import Complainer
-from renag.custom_types import BColors, GlobStr, RegexStr, Severity, Span
+from renag.custom_types import BColors, GlobStr, RegexStr, Severity
 from renag.utils import color_txt
 
 
@@ -65,10 +66,6 @@ def main() -> None:
     load_module = str(load_module_path).replace(os.sep, ".")
 
     mod = importlib.import_module(load_module)
-    if "__all__" not in mod.__dict__:
-        raise KeyError(
-            f"Please define an __all__ variable inside {load_module_path / '__init__.py'} referencing all of your Complainers. Please refer to https://docs.python.org/3/tutorial/modules.html#importing-from-a-package for help on this matter."
-        )
     all_complainers: List[Complainer] = []
     for item_name in mod.__dict__:
         if not item_name.startswith("_"):
@@ -85,19 +82,23 @@ def main() -> None:
         raise ValueError(f"No Complainers found in module {load_module}.")
 
     # Get all the captures and globs of all complainers
-    all_captures_globs: Dict[GlobStr, Set[RegexStr]] = defaultdict(set)
-    capture_to_complainer: Dict[RegexStr, List[Complainer]] = defaultdict(list)
+    all_captures_globs: Dict[
+        GlobStr, Set[Union[RegexStr, Regex, ParserElement]]
+    ] = defaultdict(set)
+    capture_to_complainer: Dict[
+        Union[RegexStr, Regex, ParserElement], List[Complainer]
+    ] = defaultdict(list)
     for complainer in all_complainers:
         # Make sure that glob is not an empty list
         if not complainer.glob:
             raise ValueError(f"Empty glob inside {complainer}: {complainer.glob}")
 
         # Map the capture to all complainers
-        capture_to_complainer[str(complainer.capture)].append(complainer)
+        capture_to_complainer[complainer.capture].append(complainer)
 
         # Add all globs and captures to the dict
         for g in complainer.glob:
-            all_captures_globs[g].add(str(complainer.capture))
+            all_captures_globs[g].add(complainer.capture)
 
     # Iterate over all captures and globs
     N, N_WARNINGS, N_CRITICAL = 0, 0, 0
@@ -118,13 +119,32 @@ def main() -> None:
                 for capture in captures:
 
                     # Then Get all matches in the file
-                    for match in (
-                        Regex(capture).compile(re.MULTILINE | re.DOTALL).finditer(txt)
-                    ):
-                        span: Span = match.span()
+                    if isinstance(capture, str):
+                        iterator = (
+                            (int(match.start()), int(match.end()))
+                            for match in regex.compile(
+                                capture, regex.MULTILINE | regex.DOTALL
+                            ).finditer(txt)
+                        )
+                    elif isinstance(capture, Regex):
+                        # Do this to make Regex support the regex library instead of re
+                        iterator = (
+                            (int(match.start()), int(match.end()))
+                            for match in regex.compile(
+                                str(capture), regex.MULTILINE | regex.DOTALL
+                            ).finditer(txt)
+                        )
+                    elif isinstance(capture, ParserElement):
+                        iterator = (
+                            (int(start), int(stop))
+                            for _, start, stop in capture.scanString(txt)
+                        )
+                    else:
+                        raise TypeError(f"Unrecognized type: {type(capture)}")
+                    for span in iterator:
 
                         # Then iterate over all complainers
-                        for complainer in capture_to_complainer[str(capture)]:
+                        for complainer in capture_to_complainer[capture]:
 
                             complaints = complainer.check(
                                 txt=txt, capture_span=span, path=file,
