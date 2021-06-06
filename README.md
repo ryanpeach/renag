@@ -7,6 +7,8 @@
 
 Short for **Regex** (re) **Nag** (like "one who complains").
 
+Now also [PEGs (Parsing Expression Grammars)](https://en.wikipedia.org/wiki/Parsing_expression_grammar) compatible with [pyparsing](https://pypi.org/project/pyparsing/)!
+
 A Regex based linter tool that works for any language and works exclusively with custom linting rules.
 
 # Complainers
@@ -61,7 +63,7 @@ Simply put this complainer in a python module in your project like so:
 
 ```
 root/
-  complainers/
+  complainers_dir_name/
     __init__.py
     custom_complainer1.py
     custom_complainer2.py
@@ -70,18 +72,18 @@ root/
   ...
 ```
 
-Add each complainer to the `__all__` variable inside `__init__.py`.
+Import each complainer inside `__init__.py` so it can be imported via `from .{complainers_dir_name} import *`.
 
 Then add the following to your `.pre-commit-hooks.yaml` file:
 
 ```yaml
 - repo: https://github.com/ryanpeach/renag
-  rev: "0.2.3"
+  rev: "0.3.0"
   hooks:
     - id: renag
       args:
         - "--load_module"
-        - "complainers"
+        - "{complainers_dir_name}"
 ```
 
 Run `renag --help` to see a list of command line arguments you can add to the hook.

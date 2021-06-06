@@ -1,10 +1,13 @@
 """This is the primary class the user will overwrite with their own complainers."""
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
+
+from iregex import Regex
+from pyparsing import ParserElement
 
 from renag.complaint import Complaint
-from renag.custom_types import AnyRegex, GlobStr, Severity, Span
+from renag.custom_types import GlobStr, RegexStr, Severity, Span
 
 
 class Complainer:
@@ -16,7 +19,7 @@ class Complainer:
     #: If you only have a capture, and no `check` method, this will define an `exists` complaint
     #: that will raise wherever this regex finds a match, and doesn't if no match is found.
     #: Defaults to "*" when passed None
-    capture: Optional[AnyRegex]
+    capture: Optional[Union[RegexStr, Regex, ParserElement]]
 
     #: Optionally define file types that this complaint runs on.
     #: For instance ["*.py"]
