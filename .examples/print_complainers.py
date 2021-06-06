@@ -17,6 +17,9 @@ class ComplexPrintComplainer(Complainer):
     severity = Severity.WARNING
     glob = ["*.py"]
 
+    def __init__(self):
+        self.cache = list()
+
     def check(self, txt: str, path: Path, capture_span: Span) -> List[Complaint]:
         """Check that the print statement is not commented out before complaining."""
         # Get the line number
@@ -31,4 +34,8 @@ class ComplexPrintComplainer(Complainer):
             return []
 
         # Otherwise we will do as normal
-        return super().check(txt=txt, path=path, capture_span=capture_span)
+        self.cache.extend(super().check(txt=txt, path=path, capture_span=capture_span))
+        return []
+
+    def finalize(self) -> List[Complaint]:
+        return self.cache

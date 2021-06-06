@@ -2,7 +2,7 @@
 This module runs the code from the commandline.
 """
 import argparse
-import importlib
+import importlib.util
 import inspect
 import os
 import re
@@ -35,7 +35,7 @@ def main() -> None:
         help="The directory to run all globs and issue complaints about.",
     )
     parser.add_argument(
-        "--n",
+        "-n",
         type=int,
         default=5,
         help="The number of lines before and after an error to show in context.",
