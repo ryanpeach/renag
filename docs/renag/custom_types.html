@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Custom Types &#8212; renag 2021 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Utils" href="utils.html" />
+    <link rel="prev" title="Complaint" href="complaint.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-renag.custom_types">
+<span id="custom-types"></span><h1>Custom Types<a class="headerlink" href="#module-renag.custom_types" title="Permalink to this headline">¶</a></h1>
+<p>Where all types for typing are declared.</p>
+<dl class="py data">
+<dt id="renag.custom_types.AnyRegex">
+<code class="sig-prename descclassname"><span class="pre">renag.custom_types.</span></code><code class="sig-name descname"><span class="pre">AnyRegex</span></code><a class="headerlink" href="#renag.custom_types.AnyRegex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents any regex type</p>
+<p>alias of Union[str, iregex.regex.Regex]</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="renag.custom_types.BColors">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">renag.custom_types.</span></code><code class="sig-name descname"><span class="pre">BColors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#renag.custom_types.BColors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Just some colors I stole from the internet.</p>
+<p>REF: <a class="reference external" href="https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal">https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal</a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="renag.custom_types.GlobStr">
+<code class="sig-prename descclassname"><span class="pre">renag.custom_types.</span></code><code class="sig-name descname"><span class="pre">GlobStr</span></code><a class="headerlink" href="#renag.custom_types.GlobStr" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="renag.custom_types.Note">
+<code class="sig-prename descclassname"><span class="pre">renag.custom_types.</span></code><code class="sig-name descname"><span class="pre">Note</span></code><a class="headerlink" href="#renag.custom_types.Note" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="renag.custom_types.RegexStr">
+<code class="sig-prename descclassname"><span class="pre">renag.custom_types.</span></code><code class="sig-name descname"><span class="pre">RegexStr</span></code><a class="headerlink" href="#renag.custom_types.RegexStr" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="renag.custom_types.Severity">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">renag.custom_types.</span></code><code class="sig-name descname"><span class="pre">Severity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#renag.custom_types.Severity" title="Permalink to this definition">¶</a></dt>
+<dd><p>An enum representing the severity of the complaint.</p>
+<p>Warnings will represent complaints that will not result in an exitcode 1.</p>
+<p>Critical will represent complaints that will result in an exitcode 1.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt id="renag.custom_types.Span">
+<code class="sig-prename descclassname"><span class="pre">renag.custom_types.</span></code><code class="sig-name descname"><span class="pre">Span</span></code><a class="headerlink" href="#renag.custom_types.Span" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a the beginning and end of a section of string.
+First int is inclusive, second int is exclusive</p>
+<p>alias of Tuple[int, int]</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">renag</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="complainer.html">Complainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="complaint.html">Complaint</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Custom Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="complaint.html" title="previous chapter">Complaint</a></li>
+      <li>Next: <a href="utils.html" title="next chapter">Utils</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Ryan Peach.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/renag/custom_types.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
