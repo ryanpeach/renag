@@ -65,3 +65,4 @@ repos:
         args:
           - "--load_module"
           - "examples"
+          - "--staged"

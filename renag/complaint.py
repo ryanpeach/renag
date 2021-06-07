@@ -60,7 +60,7 @@ class Complaint:
             subsequent_indent="    ",
         )
 
-        for file_path, slice_dict in self.file_spans.items():
+        for file_num, (file_path, slice_dict) in enumerate(self.file_spans.items()):
 
             # Load in the text of the file
             with file_path.open("r") as f:
@@ -69,29 +69,56 @@ class Complaint:
             txt_split = txt.splitlines()
             numbered_txt_split = list(enumerate(txt_split))
 
-            out.append(f"  --> {file_path.relative_to(str(Path('.').absolute()))}")
+            # Add a new line if in long mode
+            if context_nb_lines > 0:
+                out.append(" ")
 
             for slice_num, (file_slice, note) in enumerate(sorted(slice_dict.items())):
                 linesep = get_line_sep(txt)
-                is_multiline_check = linesep in txt[file_slice[0] : file_slice[1]]
+                txt_slice = txt[file_slice[0] : file_slice[1]]
+                is_multiline_check = linesep in txt_slice
                 first_line_number = txt[: file_slice[0]].count(linesep)
-                last_line_number = (
-                    txt[file_slice[0] : file_slice[1]].count(linesep)
-                    + first_line_number
-                )
+                last_line_number = txt_slice.count(linesep) + first_line_number
                 try:
-                    left_indent: int = (
-                        file_slice[0] - txt[: file_slice[0]].rindex(linesep) - 1
+                    left_indent: int = max(
+                        0, file_slice[0] - txt[: file_slice[0]].rindex(linesep) - 1
                     )
                 except ValueError:
-                    left_indent = file_slice[0] - 1
+                    left_indent = max(0, file_slice[0] - 1)
                 try:
                     right_indent: int = txt[file_slice[1] :].index(linesep)
                 except ValueError:
                     right_indent = 0
                 slice_length = file_slice[1] - file_slice[0]
                 left, right = left_indent, left_indent + slice_length
+                if is_multiline_check:
+                    last_line_distance_to_end_of_slice = len(
+                        txt_slice
+                    ) - txt_slice.rindex(linesep)
                 # print(left, right)  # This is a debug statement. It should be captured by EasyPrintComplainer but not by ComplexPrintComplainer
+
+                # Print line numbers
+                if (context_nb_lines == 0 and file_num == 0) or context_nb_lines > 0:
+                    out[-1] += " --> "
+                out[-1] += color_txt(
+                    str(file_path.relative_to(str(Path(".").absolute()))),
+                    BColors.HEADER,
+                )
+                if not is_multiline_check:
+                    out[-1] += color_txt(
+                        f"[{first_line_number}:{left}]", BColors.HEADER
+                    )
+                else:
+                    out[-1] += color_txt(
+                        f"[{first_line_number}:{left} to {last_line_number}:{last_line_distance_to_end_of_slice}]",
+                        BColors.HEADER,
+                    )
+                if context_nb_lines == 0 and file_num < len(self.file_spans) - 1:
+                    out[-1] += ", "
+
+                # Short Mode
+                if context_nb_lines == 0:
+                    continue
 
                 # Next is a snippet of text that the error comes from
                 # Immitating rustlang errors https://github.com/rust-lang/rust/issues/85681
@@ -118,7 +145,7 @@ class Complaint:
                                 f"{str(this_line_num).rjust(6)}| {line[:left]}{color_txt(line[left:], BColors.OKCYAN)}"
                             )
                             out.append(
-                                f"{str(this_line_num).rjust(6)}| {' '*left_indent}{color_txt('^'*(len(line)-left_indent), BColors.OKCYAN)}"
+                                f"{str(this_line_num).rjust(6)}| {' '*left_indent}{color_txt('^'*(len(line)-left_indent-1), BColors.OKCYAN)}"
                             )
                         elif this_line_num == last_line_number:
                             out.append(

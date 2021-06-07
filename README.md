@@ -84,6 +84,7 @@ Then add the following to your `.pre-commit-hooks.yaml` file:
       args:
         - "--load_module"
         - "{complainers_dir_name}"
+        - "--staged"
 ```
 
 Run `renag --help` to see a list of command line arguments you can add to the hook.
