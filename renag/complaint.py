@@ -62,6 +62,9 @@ class Complaint:
 
         for file_num, (file_path, slice_dict) in enumerate(self.file_spans.items()):
 
+            # file_path should be absolute
+            file_path = file_path.absolute()
+
             # Load in the text of the file
             with file_path.open("r") as f:
                 txt = f.read()
@@ -74,28 +77,52 @@ class Complaint:
                 out.append(" ")
 
             for slice_num, (file_slice, note) in enumerate(sorted(slice_dict.items())):
+                # Get the linesep from the text itself (rather than from the OS)
                 linesep = get_line_sep(txt)
+
+                # Gets the slice contained by file_slice in the text
                 txt_slice = txt[file_slice[0] : file_slice[1]]
+
+                # True if the slice goes across more than one line
                 is_multiline_check = linesep in txt_slice
+
+                # The line number of the first character in the slice
                 first_line_number = txt[: file_slice[0]].count(linesep)
+
+                # The line number of the last character in the slice
                 last_line_number = txt_slice.count(linesep) + first_line_number
+
                 try:
-                    left_indent: int = max(
-                        0, file_slice[0] - txt[: file_slice[0]].rindex(linesep) - 1
-                    )
+                    index_after_linesep = (
+                        txt[: file_slice[0]].rindex(linesep) + 1
+                    )  # verified
+                    # The distance from the left of the screen to the first character exclusive.
+                    # AKA the number of spaces BETWEEN the first character in the slice and the beginning of the line
+                    left_indent: int = file_slice[0] - index_after_linesep  # verified
+                # This happens when index linesep isn't found
                 except ValueError:
-                    left_indent = max(0, file_slice[0] - 1)
+                    left_indent = file_slice[0]  # verified
+
                 try:
+                    # The distance from the last character of the slice to the linesep character exclusive
+                    # AKA the number of spaces BETWEEN the last character in the slice and the end of the line
                     right_indent: int = txt[file_slice[1] :].index(linesep)
+                # This happens when index linesep isn't found
                 except ValueError:
-                    right_indent = 0
-                slice_length = file_slice[1] - file_slice[0]
+                    right_indent = 0  # verified
+
+                # The length of the slice
+                slice_length = file_slice[1] - file_slice[0]  # verified
+
+                # Last line length
+                last_line_length = len(txt_split[last_line_number])
+
+                # The distance from the beginning of the last line to the end of the slice
+                last_line_distance_to_end_of_slice = last_line_length - right_indent
+
+                # When slicing a line, these are the left and right slices
+                # left is an index of the first line, right is an index of the last line
                 left, right = left_indent, left_indent + slice_length
-                if is_multiline_check:
-                    last_line_distance_to_end_of_slice = len(
-                        txt_slice
-                    ) - txt_slice.rindex(linesep)
-                # print(left, right)  # This is a debug statement. It should be captured by EasyPrintComplainer but not by ComplexPrintComplainer
 
                 # Print line numbers
                 if (context_nb_lines == 0 and file_num == 0) or context_nb_lines > 0:
@@ -106,11 +133,11 @@ class Complaint:
                 )
                 if not is_multiline_check:
                     out[-1] += color_txt(
-                        f"[{first_line_number}:{left}]", BColors.HEADER
+                        f"[{first_line_number}:{left_indent+1}]", BColors.HEADER
                     )
                 else:
                     out[-1] += color_txt(
-                        f"[{first_line_number}:{left} to {last_line_number}:{last_line_distance_to_end_of_slice}]",
+                        f"[{first_line_number}:{left_indent+1} to {last_line_number}:{last_line_distance_to_end_of_slice}]",
                         BColors.HEADER,
                     )
                 if context_nb_lines == 0 and file_num < len(self.file_spans) - 1:
@@ -145,7 +172,7 @@ class Complaint:
                                 f"{str(this_line_num).rjust(6)}| {line[:left]}{color_txt(line[left:], BColors.OKCYAN)}"
                             )
                             out.append(
-                                f"{str(this_line_num).rjust(6)}| {' '*left_indent}{color_txt('^'*(len(line)-left_indent-1), BColors.OKCYAN)}"
+                                f"{str(this_line_num).rjust(6)}| {' '*left_indent}{color_txt('^'*(len(line)-left_indent), BColors.OKCYAN)}"
                             )
                         elif this_line_num == last_line_number:
                             out.append(

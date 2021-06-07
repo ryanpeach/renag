@@ -8,7 +8,7 @@ from renag import Complainer, Severity
 class EasyPrintComplainer(Complainer):
     """Print statements can slow down code."""
 
-    capture = r"(?<=\s)print\s*(?=\()"  # An example of pure regex
+    capture = r"(?<=\s|^)print\s*(?=\()"  # An example of pure regex
     severity = Severity.WARNING
     glob = ["*.py"]
 

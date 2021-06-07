@@ -56,7 +56,7 @@ class ReadmeReferenceComplainer(Complainer):
                     cls=type(self),
                     file_spans={
                         path: {capture_span: None},
-                        Path("./Readme.md").absolute(): {
+                        Path("./README.md"): {
                             (
                                 self.README.index("# Complainers"),
                                 self.README.index("# Complainers")
