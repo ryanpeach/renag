@@ -78,7 +78,7 @@ Then add the following to your `.pre-commit-hooks.yaml` file:
 
 ```yaml
 - repo: https://github.com/ryanpeach/renag
-  rev: "0.3.1"
+  rev: "0.3.2"
   hooks:
     - id: renag
       args:
