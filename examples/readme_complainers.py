@@ -54,7 +54,16 @@ class ReadmeReferenceComplainer(Complainer):
             return [
                 Complaint(
                     cls=type(self),
-                    file_spans={path: {capture_span: None}},
+                    file_spans={
+                        path: {capture_span: None},
+                        Path("./README.md"): {
+                            (
+                                self.README.index("# Complainers"),
+                                self.README.index("# Complainers")
+                                + len("# Complainers"),
+                            ): "Add it here."
+                        },
+                    },
                     description="Not found in README.md",
                     severity=self.severity,
                     help=None,

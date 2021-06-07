@@ -78,12 +78,13 @@ Then add the following to your `.pre-commit-hooks.yaml` file:
 
 ```yaml
 - repo: https://github.com/ryanpeach/renag
-  rev: "0.3.0"
+  rev: "0.3.2"
   hooks:
     - id: renag
       args:
         - "--load_module"
         - "{complainers_dir_name}"
+        - "--staged"
 ```
 
 Run `renag --help` to see a list of command line arguments you can add to the hook.

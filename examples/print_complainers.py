@@ -1,17 +1,14 @@
 """An example of a very simple complainer."""
 
-from pathlib import Path
-from typing import List
+from pyparsing import Literal, QuotedString, nestedExpr, restOfLine
 
-from pyparsing import Literal, nestedExpr
-
-from renag import Complainer, Complaint, Severity, Span, get_lines_and_numbers
+from renag import Complainer, Severity
 
 
 class EasyPrintComplainer(Complainer):
     """Print statements can slow down code."""
 
-    capture = r"(?<=\s)print\s*(?=\()"  # An example of pure regex
+    capture = r"(?<=\s|^)print\s*(?=\()"  # An example of pure regex
     severity = Severity.WARNING
     glob = ["*.py"]
 
@@ -19,23 +16,13 @@ class EasyPrintComplainer(Complainer):
 class ComplexPrintComplainer(Complainer):
     """Print statements can slow down code."""
 
-    capture = Literal("print") + nestedExpr("(", ")")  # An example of pyparsing
+    capture = (
+        (Literal("print") + nestedExpr("(", ")"))
+        .ignore("#" + restOfLine)
+        .ignore(QuotedString('"', multiline=False))
+        .ignore(QuotedString("'", multiline=False))
+        .ignore(QuotedString('"""', multiline=True))
+        .ignore(QuotedString("'''", multiline=True))
+    )  # An example of pyparsing
     severity = Severity.WARNING
     glob = ["*.py"]
-
-    def check(self, txt: str, path: Path, capture_span: Span) -> List[Complaint]:
-        """Check that the print statement is not commented out before complaining."""
-        print(txt[capture_span[0] : capture_span[1]])
-        # Get the line number
-        lines, line_numbers = get_lines_and_numbers(txt, capture_span)
-
-        # Check on the first line of the capture_span that the capture is not preceded by a '#'
-        # In such a case, the print has been commented out
-        if lines[0].count("#") > 0 and lines[0].index("#") < capture_span[0]:
-
-            # If it is the case that the print was commented out, we do not need to complain
-            # So we will return an empty list of complaints
-            return []
-
-        # Otherwise we will do as normal
-        return super().check(txt=txt, path=path, capture_span=capture_span)

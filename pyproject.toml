@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "renag"
-version = "0.3.0"
+version = "0.3.2"
 description = "A Regex based linter tool that works for any language and works exclusively with custom linting rules."
 authors = ["Ryan <ryanpeach@icloud.com>"]
 
@@ -9,6 +9,7 @@ python = "^3.7"
 pyparsing = "^2.4.7"
 regex = "^2021.4.4"
 iregex = "^0.2.1"
+GitPython = "^3.1.17"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
