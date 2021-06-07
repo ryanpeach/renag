@@ -67,7 +67,7 @@ def main() -> None:
     if not all_complainers:
         raise ValueError(f"No Complainers found in module from {load_module_path}.")
 
-    print(f"Running renag analyzer on '{analyze_dir}'..")
+    print(color_txt(f"Running renag analyzer on '{analyze_dir}'..", BColors.OKGREEN))
 
     # Get all the captures and globs of all complainers
     all_captures_globs: Dict[GlobStr, Set[RegexStr]] = defaultdict(set)
