@@ -41,11 +41,7 @@
 <dd><p>Emits errors when it finds specific strings.</p>
 <dl class="py attribute">
 <dt id="renag.complainer.Complainer.capture">
-<<<<<<< HEAD
-<code class="sig-name descname"><span class="pre">capture</span></code><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">iregex.regex.Regex</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#renag.complainer.Complainer.capture" title="Permalink to this definition">¶</a></dt>
-=======
 <code class="sig-name descname"><span class="pre">capture</span></code><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">iregex.regex.Regex</span><span class="p"><span class="pre">,</span> </span><span class="pre">pyparsing.ParserElement</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#renag.complainer.Complainer.capture" title="Permalink to this definition">¶</a></dt>
->>>>>>> fefd4509d9ebe00bd10bce7e7b52ca6baee4f375
 <dd><p>A regex under which to check the rules of the complaint.
 For instance, this could be a variable declaration, or a function definition.
 The smaller number of unique captures you have, the faster your code will run.
@@ -77,11 +73,25 @@ Defaults to “*” when passed None</p>
 </dd></dl>
 
 <dl class="py attribute">
+<dt id="renag.complainer.Complainer.exclude_glob">
+<code class="sig-name descname"><span class="pre">exclude_glob</span></code><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#renag.complainer.Complainer.exclude_glob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optionally define file types that this complaint will ignore
+For instance [“test_*.py”]
+Applies recursively through subdirectories.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt id="renag.complainer.Complainer.glob">
 <code class="sig-name descname"><span class="pre">glob</span></code><em class="property"><span class="pre">:</span> <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#renag.complainer.Complainer.glob" title="Permalink to this definition">¶</a></dt>
 <dd><p>Optionally define file types that this complaint runs on.
 For instance [“<a href="#id1"><span class="problematic" id="id2">*</span></a>.py”]
 Applies recursively through subdirectories.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="renag.complainer.Complainer.regex_options">
+<code class="sig-name descname"><span class="pre">regex_options</span></code><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">24</span></em><a class="headerlink" href="#renag.complainer.Complainer.regex_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>Regex options</p>
 </dd></dl>
 
 <dl class="py attribute">

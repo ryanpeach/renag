@@ -35,10 +35,6 @@
 <p class="topic-title">Contents</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#renag" id="id2">renag</a></p></li>
-<<<<<<< HEAD
-<li><p><a class="reference internal" href="#id1" id="id3">iregex</a></p></li>
-<li><p><a class="reference internal" href="#modules" id="id4">Modules</a></p></li>
-=======
 <li><p><a class="reference internal" href="#complainers" id="id3">Complainers</a></p>
 <ul>
 <li><p><a class="reference internal" href="#adding-to-your-project" id="id4">Adding to your project</a></p></li>
@@ -47,19 +43,10 @@
 </li>
 <li><p><a class="reference internal" href="#id1" id="id6">iregex</a></p></li>
 <li><p><a class="reference internal" href="#modules" id="id7">Modules</a></p></li>
->>>>>>> fefd4509d9ebe00bd10bce7e7b52ca6baee4f375
 </ul>
 </div>
 <div class="section" id="renag">
 <h1><a class="toc-backref" href="#id2">renag</a><a class="headerlink" href="#renag" title="Permalink to this headline">¶</a></h1>
-<<<<<<< HEAD
-<p>A Regex based linter tool that works for any language and works exclusively with custom linting rules.</p>
-<a class="reference external image-reference" href="https://travis-ci.com/ryanpeach/renag.svg?branch=master"><img alt="TravisCI Build Status" src="https://travis-ci.com/ryanpeach/renag.svg?branch=master" /></a>
-<a class="reference external image-reference" href="https://codecov.io/gh/ryanpeach/renag"><img alt="codecov" src="https://codecov.io/gh/ryanpeach/py_idiomatic_regex/branch/master/graph/badge.svg" /></a>
-<p><a class="reference external" href="https://ryanpeach.github.io/renag">Documentation Available Here</a></p>
-<p>Complaint printout modeled after <code class="docutils literal notranslate"><span class="pre">rust</span></code> error reporting. Example of a Complaint:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Severity</span><span class="o">.</span><span class="n">WARNING</span> <span class="o">-</span> <span class="n">ComplexPrintComplainer</span><span class="p">:</span> <span class="n">Print</span> <span class="n">statements</span> <span class="n">can</span> <span class="n">slow</span> <span class="n">down</span> <span class="n">code</span><span class="o">.</span>
-=======
 <a class="reference external image-reference" href="https://travis-ci.com/ryanpeach/renag.svg?branch=master"><img alt="TravisCI Build Status" src="https://travis-ci.com/ryanpeach/renag.svg?branch=master" /></a>
 <a class="reference external image-reference" href="https://codecov.io/gh/ryanpeach/renag"><img alt="codecov" src="https://codecov.io/gh/ryanpeach/py_idiomatic_regex/branch/master/graph/badge.svg" /></a>
 <p><a class="reference external" href="https://ryanpeach.github.io/renag">Documentation Available Here</a></p>
@@ -124,7 +111,7 @@
 <p>Import each complainer inside <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code> so it can be imported via <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">.{complainers_dir_name}</span> <span class="pre">import</span> <span class="pre">*</span></code>.</p>
 <p>Then add the following to your <code class="docutils literal notranslate"><span class="pre">.pre-commit-hooks.yaml</span></code> file:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">repo</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://github.com/ryanpeach/renag</span>
-  <span class="nt">rev</span><span class="p">:</span> <span class="s">&quot;0.3.2&quot;</span>
+  <span class="nt">rev</span><span class="p">:</span> <span class="s">&quot;0.3.3&quot;</span>
   <span class="nt">hooks</span><span class="p">:</span>
     <span class="p p-Indicator">-</span> <span class="nt">id</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">renag</span>
       <span class="nt">args</span><span class="p">:</span>
@@ -139,7 +126,6 @@
 <h2><a class="toc-backref" href="#id5">Output</a><a class="headerlink" href="#output" title="Permalink to this headline">¶</a></h2>
 <p>Complaint printout modeled after <code class="docutils literal notranslate"><span class="pre">rust</span></code> error reporting. Example of a Complaint:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Severity</span><span class="o">.</span><span class="n">WARNING</span> <span class="o">-</span> <span class="n">EasyPrintComplainer</span><span class="p">:</span> <span class="n">Print</span> <span class="n">statements</span> <span class="n">can</span> <span class="n">slow</span> <span class="n">down</span> <span class="n">code</span><span class="o">.</span>
->>>>>>> fefd4509d9ebe00bd10bce7e7b52ca6baee4f375
   <span class="o">--&gt;</span> <span class="n">renag</span><span class="o">/</span><span class="n">__main__</span><span class="o">.</span><span class="n">py</span>
    <span class="mi">147</span><span class="o">|</span>                                 <span class="p">)</span>
    <span class="mi">148</span><span class="o">|</span>                                 <span class="nb">print</span><span class="p">()</span>
@@ -156,16 +142,6 @@
 </pre></div>
 </div>
 </div>
-<<<<<<< HEAD
-<div class="section" id="id1">
-<h1><a class="reference external" href="https://github.com/ryanpeach/iregex">iregex</a><a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
-<p>All regex captures in this module default to using <cite>``iregex`</cite> &lt;<a class="reference external" href="https://github.com/ryanpeach/iregex">https://github.com/ryanpeach/iregex</a>&gt;`_.
-<cite>``iregex`</cite> &lt;<a class="reference external" href="https://github.com/ryanpeach/iregex">https://github.com/ryanpeach/iregex</a>&gt;`_ can help make your regex more understandable to readers, and allow you to compose large regex statements (see <code class="docutils literal notranslate"><span class="pre">examples/regex.py</span></code> for examples).
-<cite>``iregex`</cite> &lt;<a class="reference external" href="https://github.com/ryanpeach/iregex">https://github.com/ryanpeach/iregex</a>&gt;`_ defaults to multiline regex using the <code class="docutils literal notranslate"><span class="pre">re</span></code> module.</p>
-</div>
-<div class="section" id="modules">
-<h1><a class="toc-backref" href="#id4">Modules</a><a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h1>
-=======
 </div>
 <div class="section" id="id1">
 <h1><a class="reference external" href="https://github.com/ryanpeach/iregex">iregex</a><a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
@@ -174,7 +150,6 @@
 </div>
 <div class="section" id="modules">
 <h1><a class="toc-backref" href="#id7">Modules</a><a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h1>
->>>>>>> fefd4509d9ebe00bd10bce7e7b52ca6baee4f375
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="renag/complainer.html">Complainer</a></li>
