@@ -3,11 +3,12 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
+import regex
 from iregex import Regex
 from pyparsing import ParserElement
 
 from renag.complaint import Complaint
-from renag.custom_types import GlobStr, RegexStr, Severity, Span
+from renag.custom_types import GlobStr, RegexFlag, RegexStr, Severity, Span
 
 
 class Complainer:
@@ -25,6 +26,14 @@ class Complainer:
     #: For instance ["*.py"]
     #: Applies recursively through subdirectories.
     glob: List[GlobStr]
+
+    #: Optionally define file types that this complaint will ignore
+    #: For instance ["test_*.py"]
+    #: Applies recursively through subdirectories.
+    exclude_glob: Optional[List[GlobStr]] = None
+
+    #: Regex options
+    regex_options: Optional[RegexFlag] = regex.MULTILINE | regex.DOTALL
 
     #: WARNING: Will return exit code 0, but will still print a warning.
     #: CRITICAL: Will return exit code 1

@@ -6,7 +6,7 @@ import importlib
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import git
 import regex
@@ -14,7 +14,7 @@ from iregex import Regex
 from pyparsing import ParserElement
 
 from renag.complainer import Complainer
-from renag.custom_types import BColors, GlobStr, RegexStr, Severity
+from renag.custom_types import BColors, RegexFlag, RegexStr, Severity
 from renag.utils import color_txt
 
 
@@ -93,8 +93,8 @@ def main() -> None:
         raise ValueError(f"No Complainers found in module {load_module}.")
 
     # Get all the captures and globs of all complainers
-    all_captures_globs: Dict[
-        GlobStr, Set[Union[RegexStr, Regex, ParserElement]]
+    all_captures_files: Dict[
+        Path, Set[Tuple[Union[RegexStr, Regex, ParserElement], Optional[RegexFlag]]]
     ] = defaultdict(set)
     capture_to_complainer: Dict[
         Union[RegexStr, Regex, ParserElement], List[Complainer]
@@ -108,96 +108,96 @@ def main() -> None:
         capture_to_complainer[complainer.capture].append(complainer)
 
         # Add all globs and captures to the dict
+        all_files: Set[Path] = set()
         for g in complainer.glob:
-            all_captures_globs[g].add(complainer.capture)
+            all_files |= set(analyze_dir.rglob(g))
+        if complainer.exclude_glob:
+            for g in complainer.exclude_glob:
+                all_files -= set(analyze_dir.rglob(g))
+        for file in all_files:
+            if file.is_file():
+                all_captures_files[file].add(
+                    (complainer.capture, complainer.regex_options)
+                )
 
     # Get git repo information
     try:
         repo = git.Repo()
     except:  # noqa: E722  I don't know what this might return if there isn't a git repo
-        staged_files = []
-        untracked_files = []
+        staged_files: Set[Path] = set()
+        untracked_files: Set[Path] = set()
     else:
         if args.staged:
             staged_files_diffs = repo.index.diff("HEAD")
-            staged_files = [
+            staged_files = {
                 Path(repo.working_tree_dir) / diff.b_path for diff in staged_files_diffs
-            ]
-            untracked_files = [Path(path).absolute() for path in repo.untracked_files]
+            }
+            untracked_files = {Path(path).absolute() for path in repo.untracked_files}
         else:
-            staged_files = []
-            untracked_files = [Path(path).absolute() for path in repo.untracked_files]
+            staged_files = set()
+            untracked_files = {Path(path).absolute() for path in repo.untracked_files}
 
     # Iterate over all captures and globs
     N, N_WARNINGS, N_CRITICAL = 0, 0, 0
-    for glob, captures in all_captures_globs.items():
+    for file, captures in all_captures_files.items():
 
-        # First get all files in the glob
-        for file in analyze_dir.rglob(glob):
-            if file.is_file():
-                # Check if file is staged for git commit if args.git is true
-                if args.staged and file not in staged_files:
-                    continue
+        # Check if file is staged for git commit if args.git is true
+        if args.staged and file not in staged_files:
+            continue
 
-                # Check if file is untracked if we are in a git repo
-                if (not args.include_untracked) and (
-                    file.absolute() in untracked_files
-                ):
-                    continue
+        # Check if file is untracked if we are in a git repo
+        if (not args.include_untracked) and (file.absolute() in untracked_files):
+            continue
 
-                # Open the file
-                with file.open("r") as f:
-                    try:
-                        txt: str = f.read()
-                    except UnicodeDecodeError:
-                        continue
+        # Open the file
+        with file.open("r") as f:
+            try:
+                txt: str = f.read()
+            except UnicodeDecodeError:
+                continue
 
-                # Then Iterate over all captures
-                for capture in captures:
+        # Then Iterate over all captures
+        for (capture, regex_options) in captures:
 
-                    # Then Get all matches in the file
-                    if isinstance(capture, str):
-                        iterator = (
-                            (int(match.start()), int(match.end()))
-                            for match in regex.compile(
-                                capture, regex.MULTILINE | regex.DOTALL
-                            ).finditer(txt)
-                        )
-                    elif isinstance(capture, Regex):
-                        # Do this to make Regex support the regex library instead of re
-                        iterator = (
-                            (int(match.start()), int(match.end()))
-                            for match in regex.compile(
-                                str(capture), regex.MULTILINE | regex.DOTALL
-                            ).finditer(txt)
-                        )
-                    elif isinstance(capture, ParserElement):
-                        iterator = (
-                            (int(start), int(stop))
-                            for _, start, stop in capture.scanString(txt)
-                        )
-                    else:
-                        raise TypeError(f"Unrecognized type: {type(capture)}")
-                    for span in iterator:
+            # Then Get all matches in the file
+            if isinstance(capture, str):
+                iterator = (
+                    (int(match.start()), int(match.end()))
+                    for match in regex.compile(capture, regex_options).finditer(txt)
+                )
+            elif isinstance(capture, Regex):
+                # Do this to make Regex support the regex library instead of re
+                iterator = (
+                    (int(match.start()), int(match.end()))
+                    for match in regex.compile(str(capture), regex_options).finditer(
+                        txt
+                    )
+                )
+            elif isinstance(capture, ParserElement):
+                iterator = (
+                    (int(start), int(stop))
+                    for _, start, stop in capture.scanString(txt)
+                )
+            else:
+                raise TypeError(f"Unrecognized type: {type(capture)}")
+            for span in iterator:
 
-                        # Then iterate over all complainers
-                        for complainer in capture_to_complainer[capture]:
+                # Then iterate over all complainers
+                for complainer in capture_to_complainer[capture]:
 
-                            complaints = complainer.check(
-                                txt=txt, capture_span=span, path=file,
-                            )
+                    complaints = complainer.check(
+                        txt=txt, capture_span=span, path=file,
+                    )
 
-                            for complaint in complaints:
-                                N += 1
-                                if complaint.severity is Severity.CRITICAL:
-                                    N_CRITICAL += 1
-                                else:
-                                    N_WARNINGS += 1
+                    for complaint in complaints:
+                        N += 1
+                        if complaint.severity is Severity.CRITICAL:
+                            N_CRITICAL += 1
+                        else:
+                            N_WARNINGS += 1
 
-                                print(
-                                    complaint.pformat(context_nb_lines=context_nb_lines)
-                                )
-                                print()
+                        print(complaint.pformat(context_nb_lines=context_nb_lines))
+                        print()
 
     # End by exiting the program
     if N == 0:
