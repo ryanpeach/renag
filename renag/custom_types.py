@@ -21,6 +21,9 @@ GlobStr = str
 #: A short string representing an inline note
 Note = str
 
+#: A flag type from regex
+RegexFlag = int
+
 
 class Severity(Enum):
     """

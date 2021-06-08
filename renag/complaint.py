@@ -140,7 +140,10 @@ class Complaint:
                         f"[{first_line_number}:{left_indent+1} to {last_line_number}:{last_line_distance_to_end_of_slice}]",
                         BColors.HEADER,
                     )
-                if context_nb_lines == 0 and file_num < len(self.file_spans) - 1:
+                if context_nb_lines == 0 and (
+                    file_num < len(self.file_spans) - 1
+                    or slice_num < len(slice_dict) - 1
+                ):
                     out[-1] += ", "
 
                 # Short Mode
@@ -211,7 +214,9 @@ class Complaint:
         # Finally
         if self.help:
             out += textwrap.wrap(
-                f"= help: {self.help}", initial_indent="  ", subsequent_indent="    "
+                color_txt(f"= help: {self.help}", BColors.OKBLUE),
+                initial_indent="  ",
+                subsequent_indent="    ",
             )
 
         return "\n".join(out)
