@@ -6,3 +6,5 @@
     types: [file]
     verbose: true
     pass_filenames: false
+    args:
+      - "--staged"

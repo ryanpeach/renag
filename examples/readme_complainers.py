@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from typing import List
 
+from iregex import ALPHA_NUMERIC, WHITESPACE, AnyChar, OneOrMore
+
 from renag import Complainer, Complaint, Span, get_lines_and_numbers
 from renag.custom_types import Severity
 
@@ -11,7 +13,10 @@ from renag.custom_types import Severity
 class ReadmeReferenceComplainer(Complainer):
     """Checks if a class is in the readme."""
 
-    capture = r"class\s+\w+:"
+    capture = (
+        "class" + OneOrMore(WHITESPACE) + OneOrMore(AnyChar(ALPHA_NUMERIC, "_")) + ":"
+    )  # An example of iregex
+    # capture = "class\s+[A-Za-z0-9_]+:"
     glob = ["*.py"]
     severity = Severity.WARNING
 
@@ -49,7 +54,16 @@ class ReadmeReferenceComplainer(Complainer):
             return [
                 Complaint(
                     cls=type(self),
-                    file_spans={path: {capture_span: None}},
+                    file_spans={
+                        path: {capture_span: None},
+                        Path("./README.md"): {
+                            (
+                                self.README.index("# Complainers"),
+                                self.README.index("# Complainers")
+                                + len("# Complainers"),
+                            ): "Add it here."
+                        },
+                    },
                     description="Not found in README.md",
                     severity=self.severity,
                     help=None,

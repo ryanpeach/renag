@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Type
 
 from renag.custom_types import BColors, Note, Severity, Span
-from renag.utils import color_txt
+from renag.utils import color_txt, get_line_sep
 
 
 class Complaint:
@@ -60,7 +60,10 @@ class Complaint:
             subsequent_indent="    ",
         )
 
-        for file_path, slice_dict in self.file_spans.items():
+        for file_num, (file_path, slice_dict) in enumerate(self.file_spans.items()):
+
+            # file_path should be absolute
+            file_path = file_path.absolute()
 
             # Load in the text of the file
             with file_path.open("r") as f:
@@ -69,27 +72,80 @@ class Complaint:
             txt_split = txt.splitlines()
             numbered_txt_split = list(enumerate(txt_split))
 
-            out.append(f"  --> {file_path.relative_to(str(Path('.').absolute()))}")
+            # Add a new line if in long mode
+            if context_nb_lines > 0:
+                out.append(" ")
 
             for slice_num, (file_slice, note) in enumerate(sorted(slice_dict.items())):
-                is_multiline_check = "\n" in txt[file_slice[0] : file_slice[1]]
-                first_line_number = txt[: file_slice[0]].count("\n")
-                last_line_number = (
-                    txt[file_slice[0] : file_slice[1]].count("\n") + first_line_number
-                )
+                # Get the linesep from the text itself (rather than from the OS)
+                linesep = get_line_sep(txt)
+
+                # Gets the slice contained by file_slice in the text
+                txt_slice = txt[file_slice[0] : file_slice[1]]
+
+                # True if the slice goes across more than one line
+                is_multiline_check = linesep in txt_slice
+
+                # The line number of the first character in the slice
+                first_line_number = txt[: file_slice[0]].count(linesep)
+
+                # The line number of the last character in the slice
+                last_line_number = txt_slice.count(linesep) + first_line_number
+
                 try:
-                    left_indent: int = (
-                        file_slice[0] - txt[: file_slice[0]].rindex("\n") - 1
-                    )
+                    index_after_linesep = (
+                        txt[: file_slice[0]].rindex(linesep) + 1
+                    )  # verified
+                    # The distance from the left of the screen to the first character exclusive.
+                    # AKA the number of spaces BETWEEN the first character in the slice and the beginning of the line
+                    left_indent: int = file_slice[0] - index_after_linesep  # verified
+                # This happens when index linesep isn't found
                 except ValueError:
-                    left_indent = file_slice[0] - 1
+                    left_indent = file_slice[0]  # verified
+
                 try:
-                    right_indent: int = txt[file_slice[1] :].index("\n")
+                    # The distance from the last character of the slice to the linesep character exclusive
+                    # AKA the number of spaces BETWEEN the last character in the slice and the end of the line
+                    right_indent: int = txt[file_slice[1] :].index(linesep)
+                # This happens when index linesep isn't found
                 except ValueError:
-                    right_indent = 0
-                slice_length = file_slice[1] - file_slice[0]
+                    right_indent = 0  # verified
+
+                # The length of the slice
+                slice_length = file_slice[1] - file_slice[0]  # verified
+
+                # Last line length
+                last_line_length = len(txt_split[last_line_number])
+
+                # The distance from the beginning of the last line to the end of the slice
+                last_line_distance_to_end_of_slice = last_line_length - right_indent
+
+                # When slicing a line, these are the left and right slices
+                # left is an index of the first line, right is an index of the last line
                 left, right = left_indent, left_indent + slice_length
-                # print(left, right)  # This is a debug statement. It should be captured by EasyPrintComplainer but not by ComplexPrintComplainer
+
+                # Print line numbers
+                if (context_nb_lines == 0 and file_num == 0) or context_nb_lines > 0:
+                    out[-1] += " --> "
+                out[-1] += color_txt(
+                    str(file_path.relative_to(str(Path(".").absolute()))),
+                    BColors.HEADER,
+                )
+                if not is_multiline_check:
+                    out[-1] += color_txt(
+                        f"[{first_line_number}:{left_indent+1}]", BColors.HEADER
+                    )
+                else:
+                    out[-1] += color_txt(
+                        f"[{first_line_number}:{left_indent+1} to {last_line_number}:{last_line_distance_to_end_of_slice}]",
+                        BColors.HEADER,
+                    )
+                if context_nb_lines == 0 and file_num < len(self.file_spans) - 1:
+                    out[-1] += ", "
+
+                # Short Mode
+                if context_nb_lines == 0:
+                    continue
 
                 # Next is a snippet of text that the error comes from
                 # Immitating rustlang errors https://github.com/rust-lang/rust/issues/85681

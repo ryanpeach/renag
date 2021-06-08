@@ -6,6 +6,7 @@ from typing import Tuple, Union
 from iregex import Regex
 
 #: Represents a the beginning and end of a section of string.
+#: First int is inclusive, second int is exclusive
 Span = Tuple[int, int]
 
 #: Any string representing Regex
