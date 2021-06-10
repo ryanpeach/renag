@@ -4,10 +4,9 @@ This module runs the code from the commandline.
 import argparse
 import importlib
 import os
-import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set
 
 import git
 from pyparsing import ParserElement, Regex
@@ -92,9 +91,7 @@ def main() -> None:
         raise ValueError(f"No Complainers found in module {load_module}.")
 
     # Get all the captures and globs of all complainers
-    all_captures_files: Dict[
-        Path, Set[Tuple[ParserElement, Optional[re.RegexFlag]]]
-    ] = defaultdict(set)
+    all_captures_files: Dict[Path, Set[ParserElement]] = defaultdict(set)
     capture_to_complainer: Dict[ParserElement, List[Complainer]] = defaultdict(list)
     for complainer in all_complainers:
         # Make sure that glob is not an empty list
@@ -114,10 +111,10 @@ def main() -> None:
         for file in all_files:
             if file.is_file():
                 if isinstance(complainer.capture, str):
-                    complainer.capture = Regex(complainer.capture)
-                all_captures_files[file].add(
-                    (complainer.capture, complainer.regex_options)
-                )
+                    complainer.capture = Regex(
+                        complainer.capture, flags=complainer.regex_options
+                    )
+                all_captures_files[file].add(complainer.capture)
 
     # Get git repo information
     try:
@@ -154,8 +151,9 @@ def main() -> None:
             except UnicodeDecodeError:
                 continue
 
+        # Get the or of all captures
         # Then Iterate over all captures
-        for (capture, regex_options) in captures:
+        for capture in captures:
 
             # Then Get all matches in the file
             for span in (
