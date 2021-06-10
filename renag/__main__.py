@@ -4,17 +4,16 @@ This module runs the code from the commandline.
 import argparse
 import importlib
 import os
+import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple
 
 import git
-import regex
-from iregex import Regex
-from pyparsing import ParserElement
+from pyparsing import ParserElement, Regex
 
 from renag.complainer import Complainer
-from renag.custom_types import BColors, RegexFlag, RegexStr, Severity
+from renag.custom_types import BColors, Severity
 from renag.utils import color_txt
 
 
@@ -94,11 +93,9 @@ def main() -> None:
 
     # Get all the captures and globs of all complainers
     all_captures_files: Dict[
-        Path, Set[Tuple[Union[RegexStr, Regex, ParserElement], Optional[RegexFlag]]]
+        Path, Set[Tuple[ParserElement, Optional[re.RegexFlag]]]
     ] = defaultdict(set)
-    capture_to_complainer: Dict[
-        Union[RegexStr, Regex, ParserElement], List[Complainer]
-    ] = defaultdict(list)
+    capture_to_complainer: Dict[ParserElement, List[Complainer]] = defaultdict(list)
     for complainer in all_complainers:
         # Make sure that glob is not an empty list
         if not complainer.glob:
@@ -116,6 +113,8 @@ def main() -> None:
                 all_files -= set(analyze_dir.rglob(g))
         for file in all_files:
             if file.is_file():
+                if isinstance(complainer.capture, str):
+                    complainer.capture = Regex(complainer.capture)
                 all_captures_files[file].add(
                     (complainer.capture, complainer.regex_options)
                 )
@@ -132,10 +131,9 @@ def main() -> None:
             staged_files = {
                 Path(repo.working_tree_dir) / diff.b_path for diff in staged_files_diffs
             }
-            untracked_files = {Path(path).absolute() for path in repo.untracked_files}
         else:
             staged_files = set()
-            untracked_files = {Path(path).absolute() for path in repo.untracked_files}
+        untracked_files = {Path(path).absolute() for path in repo.untracked_files}
 
     # Iterate over all captures and globs
     N, N_WARNINGS, N_CRITICAL = 0, 0, 0
@@ -160,27 +158,9 @@ def main() -> None:
         for (capture, regex_options) in captures:
 
             # Then Get all matches in the file
-            if isinstance(capture, str):
-                iterator = (
-                    (int(match.start()), int(match.end()))
-                    for match in regex.compile(capture, regex_options).finditer(txt)
-                )
-            elif isinstance(capture, Regex):
-                # Do this to make Regex support the regex library instead of re
-                iterator = (
-                    (int(match.start()), int(match.end()))
-                    for match in regex.compile(str(capture), regex_options).finditer(
-                        txt
-                    )
-                )
-            elif isinstance(capture, ParserElement):
-                iterator = (
-                    (int(start), int(stop))
-                    for _, start, stop in capture.scanString(txt)
-                )
-            else:
-                raise TypeError(f"Unrecognized type: {type(capture)}")
-            for span in iterator:
+            for span in (
+                (int(start), int(stop)) for _, start, stop in capture.scanString(txt)
+            ):
 
                 # Then iterate over all complainers
                 for complainer in capture_to_complainer[capture]:

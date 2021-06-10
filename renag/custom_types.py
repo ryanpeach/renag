@@ -1,9 +1,6 @@
 """Where all types for typing are declared."""
-
 from enum import Enum
-from typing import Tuple, Union
-
-from iregex import Regex
+from typing import Tuple
 
 #: Represents a the beginning and end of a section of string.
 #: First int is inclusive, second int is exclusive
@@ -12,17 +9,11 @@ Span = Tuple[int, int]
 #: Any string representing Regex
 RegexStr = str
 
-#: Represents any regex type
-AnyRegex = Union[RegexStr, Regex]
-
 #: A string to glob for files with
 GlobStr = str
 
 #: A short string representing an inline note
 Note = str
-
-#: A flag type from regex
-RegexFlag = int
 
 
 class Severity(Enum):

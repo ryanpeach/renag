@@ -19,3 +19,4 @@ def test_get_line_numbers1() -> None:
     lines, line_nums = get_lines_and_numbers(txt=test, span=(3, 10))
     assert lines == ["asdf", "   jksks"]
     assert line_nums == [0, 1]
+    print()  # This shouldn't be found by print_complainers

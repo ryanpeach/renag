@@ -1,14 +1,13 @@
 """This is the primary class the user will overwrite with their own complainers."""
 
+import re
 from pathlib import Path
 from typing import List, Optional, Union
 
-import regex
-from iregex import Regex
 from pyparsing import ParserElement
 
 from renag.complaint import Complaint
-from renag.custom_types import GlobStr, RegexFlag, RegexStr, Severity, Span
+from renag.custom_types import GlobStr, RegexStr, Severity, Span
 
 
 class Complainer:
@@ -20,7 +19,7 @@ class Complainer:
     #: If you only have a capture, and no `check` method, this will define an `exists` complaint
     #: that will raise wherever this regex finds a match, and doesn't if no match is found.
     #: Defaults to "*" when passed None
-    capture: Optional[Union[RegexStr, Regex, ParserElement]]
+    capture: Optional[Union[RegexStr, ParserElement]]
 
     #: Optionally define file types that this complaint runs on.
     #: For instance ["*.py"]
@@ -33,7 +32,7 @@ class Complainer:
     exclude_glob: Optional[List[GlobStr]] = None
 
     #: Regex options
-    regex_options: Optional[RegexFlag] = regex.MULTILINE | regex.DOTALL
+    regex_options: Optional[re.RegexFlag] = re.MULTILINE | re.DOTALL
 
     #: WARNING: Will return exit code 0, but will still print a warning.
     #: CRITICAL: Will return exit code 1

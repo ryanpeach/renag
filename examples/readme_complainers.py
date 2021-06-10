@@ -13,7 +13,7 @@ from renag.custom_types import Severity
 class ReadmeReferenceComplainer(Complainer):
     """Checks if a class is in the readme."""
 
-    capture = (
+    capture = str(
         "class" + OneOrMore(WHITESPACE) + OneOrMore(AnyChar(ALPHA_NUMERIC, "_")) + ":"
     )  # An example of iregex
     # capture = "class\s+[A-Za-z0-9_]+:"

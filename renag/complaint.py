@@ -133,11 +133,11 @@ class Complaint:
                 )
                 if not is_multiline_check:
                     out[-1] += color_txt(
-                        f"[{first_line_number}:{left_indent+1}]", BColors.HEADER
+                        f"[{first_line_number+1}:{left_indent+1}]", BColors.HEADER
                     )
                 else:
                     out[-1] += color_txt(
-                        f"[{first_line_number}:{left_indent+1} to {last_line_number}:{last_line_distance_to_end_of_slice}]",
+                        f"[{first_line_number+1}:{left_indent+1} to {last_line_number+1}:{last_line_distance_to_end_of_slice}]",
                         BColors.HEADER,
                     )
                 if context_nb_lines == 0 and (
@@ -156,7 +156,7 @@ class Complaint:
                 for this_line_num, line in numbered_txt_split[
                     max(0, first_line_number - context_nb_lines) : first_line_number
                 ]:
-                    out.append(f"{str(this_line_num).rjust(6)}| {line}")
+                    out.append(f"{str(this_line_num + 1).rjust(6)}| {line}")
 
                 # The Lines of
                 for this_line_num, line in numbered_txt_split[
@@ -164,32 +164,32 @@ class Complaint:
                 ]:
                     if not is_multiline_check:
                         out.append(
-                            f"{str(this_line_num).rjust(6)}| {line[:left]}{color_txt(line[left:right], BColors.OKCYAN)}{line[right:]}"
+                            f"{str(this_line_num + 1).rjust(6)}| {line[:left]}{color_txt(line[left:right], BColors.OKCYAN)}{line[right:]}"
                         )
                         out.append(
-                            f"{str(this_line_num).rjust(6)}| {' '*left_indent}{color_txt('^'*slice_length, BColors.OKCYAN)}"
+                            f"{str(this_line_num + 1).rjust(6)}| {' '*left_indent}{color_txt('^'*slice_length, BColors.OKCYAN)}"
                         )
                     else:
                         if this_line_num == first_line_number:
                             out.append(
-                                f"{str(this_line_num).rjust(6)}| {line[:left]}{color_txt(line[left:], BColors.OKCYAN)}"
+                                f"{str(this_line_num + 1).rjust(6)}| {line[:left]}{color_txt(line[left:], BColors.OKCYAN)}"
                             )
                             out.append(
-                                f"{str(this_line_num).rjust(6)}| {' '*left_indent}{color_txt('^'*(len(line)-left_indent), BColors.OKCYAN)}"
+                                f"{str(this_line_num + 1).rjust(6)}| {' '*left_indent}{color_txt('^'*(len(line)-left_indent), BColors.OKCYAN)}"
                             )
                         elif this_line_num == last_line_number:
                             out.append(
-                                f"{str(this_line_num).rjust(6)}| {color_txt(line[:right], BColors.OKCYAN)}{line[right:]}"
+                                f"{str(this_line_num + 1).rjust(6)}| {color_txt(line[:right], BColors.OKCYAN)}{line[right:]}"
                             )
                             out.append(
-                                f"{str(this_line_num).rjust(6)}| {color_txt('^'*(len(line)-right_indent), BColors.OKCYAN)}"
+                                f"{str(this_line_num + 1).rjust(6)}| {color_txt('^'*(len(line)-right_indent), BColors.OKCYAN)}"
                             )
                         else:
                             out.append(
-                                f"{str(this_line_num).rjust(6)}| {color_txt(line, BColors.OKCYAN)}"
+                                f"{str(this_line_num + 1).rjust(6)}| {color_txt(line, BColors.OKCYAN)}"
                             )
                             out.append(
-                                f"{str(this_line_num).rjust(6)}| {color_txt('^'*len(line), BColors.OKCYAN)}"
+                                f"{str(this_line_num + 1).rjust(6)}| {color_txt('^'*len(line), BColors.OKCYAN)}"
                             )
 
                 if note:
@@ -205,7 +205,7 @@ class Complaint:
                 for this_line_num, line in numbered_txt_split[
                     last_line_number + 1 : last_line_number + 1 + context_nb_lines
                 ]:
-                    out.append(f"{str(this_line_num).rjust(6)}| {line}")
+                    out.append(f"{str(this_line_num + 1).rjust(6)}| {line}")
 
                 # If this is not the end
                 if slice_num < len(slice_dict) - 1:
