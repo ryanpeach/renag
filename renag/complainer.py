@@ -2,7 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from pyparsing import ParserElement
 
@@ -48,7 +48,9 @@ class Complainer:
         """
         pass
 
-    def check(self, txt: str, path: Path, capture_span: Span) -> List[Complaint]:
+    def check(
+        self, txt: str, path: Path, capture_span: Span, capture_data: Any
+    ) -> List[Complaint]:
         """
         Checks a piece of text and returns a list of complaints.
 

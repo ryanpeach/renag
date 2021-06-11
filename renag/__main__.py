@@ -156,15 +156,16 @@ def main() -> None:
         for capture in captures:
 
             # Then Get all matches in the file
-            for span in (
-                (int(start), int(stop)) for _, start, stop in capture.scanString(txt)
-            ):
+            for match, start, stop in capture.scanString(txt):
 
                 # Then iterate over all complainers
                 for complainer in capture_to_complainer[capture]:
 
                     complaints = complainer.check(
-                        txt=txt, capture_span=span, path=file,
+                        txt=txt,
+                        capture_span=(start, stop),
+                        path=file,
+                        capture_data=match,
                     )
 
                     for complaint in complaints:
