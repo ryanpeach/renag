@@ -93,6 +93,7 @@ def main() -> None:
     # Get all the captures and globs of all complainers
     all_captures_files: Dict[Path, Set[ParserElement]] = defaultdict(set)
     capture_to_complainer: Dict[ParserElement, List[Complainer]] = defaultdict(list)
+    complainer_to_files: Dict[Complainer, Set[Path]] = defaultdict(set)
     for complainer in all_complainers:
         # Make sure that glob is not an empty list
         if not complainer.glob:
@@ -115,6 +116,7 @@ def main() -> None:
                         complainer.capture, flags=complainer.regex_options
                     )
                 all_captures_files[file].add(complainer.capture)
+                complainer_to_files[complainer].add(file)
 
     # Get git repo information
     try:
@@ -160,6 +162,10 @@ def main() -> None:
 
                 # Then iterate over all complainers
                 for complainer in capture_to_complainer[capture]:
+
+                    # Skip if this file is not specifically globbed by this complainer
+                    if file not in complainer_to_files[complainer]:
+                        continue
 
                     complaints = complainer.check(
                         txt=txt,
