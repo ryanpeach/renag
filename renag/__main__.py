@@ -107,9 +107,13 @@ def main() -> None:
     if not all_complainers:
         raise ValueError(f"No Complainers found in module from {load_module_path}.")
 
-    print("Found Complainers:")
+    print(color_txt("Found Complainers:", BColors.OKGREEN))
     for c in all_complainers:
-        print("  - " + str(type(c)))
+        print(
+            color_txt(
+                "  - " + type(c).__module__ + "." + type(c).__name__, BColors.OKGREEN
+            )
+        )
 
     print(color_txt(f"Running renag analyzer on '{analyze_dir}'..", BColors.OKGREEN))
 
