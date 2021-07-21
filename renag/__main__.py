@@ -6,7 +6,6 @@ import importlib.util
 import inspect
 import os
 from collections import defaultdict
-from contextlib import suppress
 from pathlib import Path
 from typing import Dict, List, Set
 
@@ -56,7 +55,6 @@ def main() -> None:
     if not args.analyze_dir.is_dir():
         raise ValueError(f"{args.analyze_dir} is not a directory.")
 
-    # load_module_path = Path(args.load_module).relative_to(".")
     load_module_path = Path(args.load_module).absolute()
     analyze_dir = Path(args.analyze_dir).absolute()
     context_nb_lines = max(int(args.n), 0)
@@ -129,19 +127,15 @@ def main() -> None:
         # Map the capture to all complainers
         capture_to_complainer[complainer.capture].append(complainer)
 
-        # Add all globs and captures to the dict
+        # Get all the files to analyze
         all_files: Set[Path] = set()
         for g in complainer.glob:
-            for f in analyze_dir.rglob(g):
-                if f.is_file():
-                    all_files.add(f)
+            all_files |= set(analyze_dir.rglob(g))
         if complainer.exclude_glob:
             for g in complainer.exclude_glob:
-                for f in analyze_dir.rglob(g):
-                    if f.is_file():
-                        with suppress(KeyError):
-                            all_files.remove(f)
+                all_files -= set(analyze_dir.rglob(g))
 
+        # Add all files and captures to the dicts
         for file1 in all_files:
             if isinstance(complainer.capture, str):
                 complainer.capture = Regex(
