@@ -64,5 +64,5 @@ repos:
         pass_filenames: false
         args:
           - "--load_module"
-          - "examples"
+          - "complaints"
           - "--staged"

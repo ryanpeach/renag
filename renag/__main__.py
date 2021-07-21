@@ -2,7 +2,8 @@
 This module runs the code from the commandline.
 """
 import argparse
-import importlib
+import importlib.util
+import inspect
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -34,7 +35,7 @@ def main() -> None:
         help="The directory to run all globs and issue complaints about.",
     )
     parser.add_argument(
-        "--n",
+        "-n",
         type=int,
         default=5,
         help="The number of lines before and after an error to show in context.",
@@ -54,41 +55,65 @@ def main() -> None:
     if not args.analyze_dir.is_dir():
         raise ValueError(f"{args.analyze_dir} is not a directory.")
 
-    load_module_path = Path(args.load_module).relative_to(".")
+    load_module_path = Path(args.load_module).absolute()
     analyze_dir = Path(args.analyze_dir).absolute()
     context_nb_lines = max(int(args.n), 0)
 
-    # Check for an __init__.py
-    path_ = load_module_path
-    if path_ == Path("."):
+    # Handle some basic tests
+    if load_module_path == Path("."):
         raise ValueError(f"load_module should be a subdirectory, not the current path.")
-    if not path_.is_dir():
-        raise ValueError(f"{path_} is not a directory.")
-    while path_ != Path("."):
-        if not (path_ / "__init__.py").is_file():
-            raise ValueError(
-                f"{(load_module_path / '__init__.py')} does not exist. Should be a python module."
-            )
-        path_ = path_.parent
+    if not load_module_path.is_dir():
+        raise ValueError(f"{load_module_path} is not a directory.")
 
-    # Get the relative module name
-    load_module = str(load_module_path).replace(os.sep, ".")
-
-    mod = importlib.import_module(load_module)
+    # Get all complainers
     all_complainers: List[Complainer] = []
-    for item_name in mod.__dict__:
-        if not item_name.startswith("_"):
-            item = getattr(mod, item_name)
-            if isinstance(item, type) and issubclass(item, Complainer):
-                # Initialize the item and add it to all complainers
-                all_complainers.append(item())
 
-    print("Found Complainers:")
-    for c in all_complainers:
-        print("  - " + type(c).__module__ + "." + type(c).__name__)
+    # Check for an __init__.py
+    IS_MODULE = (load_module_path / "__init__.py").is_file()
+
+    # get complainers by loading a module with an __init__.py
+    if IS_MODULE:
+        # Get the relative module name
+        load_module = str(load_module_path).replace(os.sep, ".")
+
+        # Load the complainers within the module
+        mod = importlib.import_module(load_module)
+        for item_name in mod.__dict__:
+            if not item_name.startswith("_"):
+                item = getattr(mod, item_name)
+                if isinstance(item, type) and issubclass(item, Complainer):
+                    # Initialize the item and add it to all complainers
+                    all_complainers.append(item())
+
+    # get complainers by loading a list of files in a directory
+    else:
+        # For all files in the target folder.
+        for file1 in load_module_path.iterdir():
+            # If file starts from letter and ends with .py
+            if file1.is_file() and file1.suffix == ".py":
+                # Import each file as a module from it's full path.
+                spec = importlib.util.spec_from_file_location(
+                    ".", load_module_path / file1
+                )
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)  # type: ignore
+                # For each object definition that is a class.
+                for _name, obj in inspect.getmembers(mod, inspect.isclass):
+                    if issubclass(obj, Complainer) and obj != Complainer:
+                        all_complainers.append(obj())
 
     if not all_complainers:
-        raise ValueError(f"No Complainers found in module {load_module}.")
+        raise ValueError(f"No Complainers found in module from {load_module_path}.")
+
+    print(color_txt("Found Complainers:", BColors.OKGREEN))
+    for c in all_complainers:
+        print(
+            color_txt(
+                "  - " + type(c).__module__ + "." + type(c).__name__, BColors.OKGREEN
+            )
+        )
+
+    print(color_txt(f"Running renag analyzer on '{analyze_dir}'..", BColors.OKGREEN))
 
     # Get all the captures and globs of all complainers
     all_captures_files: Dict[Path, Set[ParserElement]] = defaultdict(set)
@@ -102,21 +127,22 @@ def main() -> None:
         # Map the capture to all complainers
         capture_to_complainer[complainer.capture].append(complainer)
 
-        # Add all globs and captures to the dict
+        # Get all the files to analyze
         all_files: Set[Path] = set()
         for g in complainer.glob:
             all_files |= set(analyze_dir.rglob(g))
         if complainer.exclude_glob:
             for g in complainer.exclude_glob:
                 all_files -= set(analyze_dir.rglob(g))
-        for file in all_files:
-            if file.is_file():
-                if isinstance(complainer.capture, str):
-                    complainer.capture = Regex(
-                        complainer.capture, flags=complainer.regex_options
-                    )
-                all_captures_files[file].add(complainer.capture)
-                complainer_to_files[complainer].add(file)
+
+        # Add all files and captures to the dicts
+        for file1 in all_files:
+            if isinstance(complainer.capture, str):
+                complainer.capture = Regex(
+                    complainer.capture, flags=complainer.regex_options
+                )
+            all_captures_files[file1].add(complainer.capture)
+            complainer_to_files[complainer].add(file1)
 
     # Get git repo information
     try:
@@ -135,21 +161,20 @@ def main() -> None:
         untracked_files = {Path(path).absolute() for path in repo.untracked_files}
 
     # Iterate over all captures and globs
-    N, N_WARNINGS, N_CRITICAL = 0, 0, 0
-    for file, captures in all_captures_files.items():
-
+    N_WARNINGS, N_CRITICAL = 0, 0
+    for file2, captures in all_captures_files.items():
         # Check if file is staged for git commit if args.git is true
-        if args.staged and file not in staged_files:
+        if args.staged and file2 not in staged_files:
             continue
 
         # Check if file is untracked if we are in a git repo
-        if (not args.include_untracked) and (file.absolute() in untracked_files):
+        if (not args.include_untracked) and (file2.absolute() in untracked_files):
             continue
 
         # Open the file
-        with file.open("r") as f:
+        with file2.open("r") as f2:
             try:
-                txt: str = f.read()
+                txt: str = f2.read()
             except UnicodeDecodeError:
                 continue
 
@@ -164,45 +189,60 @@ def main() -> None:
                 for complainer in capture_to_complainer[capture]:
 
                     # Skip if this file is not specifically globbed by this complainer
-                    if file not in complainer_to_files[complainer]:
+                    if file2 not in complainer_to_files[complainer]:
                         continue
 
                     complaints = complainer.check(
                         txt=txt,
                         capture_span=(start, stop),
-                        path=file,
+                        path=file2,
                         capture_data=match,
                     )
 
                     for complaint in complaints:
-                        N += 1
                         if complaint.severity is Severity.CRITICAL:
                             N_CRITICAL += 1
                         else:
                             N_WARNINGS += 1
 
-                        print(complaint.pformat(context_nb_lines=context_nb_lines))
-                        print()
+                        print(
+                            complaint.pformat(context_nb_lines=context_nb_lines),
+                            end="\n\n",
+                        )
+
+    # In the end, we try to call .finalize() on each complainer. Its purpose is
+    # to allow for complainers to have methods that will be called once, in the end.
+    for capture in captures:
+        for complainer in capture_to_complainer[capture]:
+            complaints = complainer.finalize()
+            for complaint in complaints:
+                if complaint.severity == Severity.CRITICAL:
+                    N_CRITICAL += 1
+                else:
+                    N_WARNINGS += 1
+
+                print(
+                    complaint.pformat(context_nb_lines=context_nb_lines), end="\n\n",
+                )
 
     # End by exiting the program
-    if N == 0:
-        print(color_txt("No complaints. Enjoy the rest of your day!", BColors.OKGREEN))
+    N = N_WARNINGS + N_CRITICAL
+    if not N:
+        print(color_txt("Renag finished with no complaints.", BColors.OKGREEN))
         exit(0)
-    if N_WARNINGS > 0 and N_CRITICAL == 0:
-        print(
-            color_txt(
-                f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
-                BColors.WARNING,
-            )
-        )
-        exit(0)
+
     print(
         color_txt(
             f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
             BColors.WARNING,
         )
     )
-    exit(1)
+
+    # If has critical errors - exit with non-zero code..
+    if N_CRITICAL != 0:
+        exit(1)
+    # ..else quit early.
+    exit(0)
 
 
 if __name__ == "__main__":

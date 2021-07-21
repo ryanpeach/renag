@@ -2,7 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from iregex import ALPHA_NUMERIC, WHITESPACE, AnyChar, OneOrMore
 
@@ -29,7 +29,9 @@ class ReadmeReferenceComplainer(Complainer):
         with Path("README.md").open("r") as f:
             self.README: str = f.read()
 
-    def check(self, txt: str, path: Path, capture_span: Span) -> List[Complaint]:
+    def check(
+        self, txt: str, path: Path, capture_span: Span, capture_data: Any
+    ) -> List[Complaint]:
         """Check that the README contains a reference to this class."""
         # Get the line number
         lines, line_numbers = get_lines_and_numbers(txt, capture_span)

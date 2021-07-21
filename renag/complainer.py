@@ -74,3 +74,15 @@ class Complainer:
                 help=None,
             )
         ]
+
+    def finalize(self) -> List[Complaint]:
+        """
+        After this has run on all files and all captures, this allows you to return a list of complaints from the saved
+        information.
+
+        For example: Lets say you wanted to make a complainer that doesn't complain at all until all captures in the project
+        are saved in some kind of dictionary internal to this complainer instance (which will persist over all files) and then
+        analyzes that dictionary for bad outcomes. Like maybe you want to check for naming conflicts! Or that there are
+        exactly 5 global variables for some reason. This is the place to do that.
+        """
+        return []
