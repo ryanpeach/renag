@@ -93,7 +93,7 @@ def main() -> None:
             if file1.is_file() and file1.suffix == ".py":
                 # Import each file as a module from it's full path.
                 spec = importlib.util.spec_from_file_location(
-                    ".", load_module_path / file1
+                    ".", load_module_path.parent.absolute() / file1
                 )
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)  # type: ignore
