@@ -2,9 +2,11 @@
 This module runs the code from the commandline.
 """
 import argparse
-import importlib
+import importlib.util
+import inspect
 import os
 from collections import defaultdict
+from contextlib import suppress
 from pathlib import Path
 from typing import Dict, List, Set
 
@@ -34,7 +36,7 @@ def main() -> None:
         help="The directory to run all globs and issue complaints about.",
     )
     parser.add_argument(
-        "--n",
+        "-n",
         type=int,
         default=5,
         help="The number of lines before and after an error to show in context.",
@@ -54,33 +56,53 @@ def main() -> None:
     if not args.analyze_dir.is_dir():
         raise ValueError(f"{args.analyze_dir} is not a directory.")
 
-    load_module_path = Path(args.load_module).relative_to(".")
+    # load_module_path = Path(args.load_module).relative_to(".")
+    load_module_path = Path(args.load_module).absolute()
     analyze_dir = Path(args.analyze_dir).absolute()
     context_nb_lines = max(int(args.n), 0)
 
-    # Check for an __init__.py
-    path_ = load_module_path
-    if path_ == Path("."):
+    # Handle some basic tests
+    if load_module_path == Path("."):
         raise ValueError(f"load_module should be a subdirectory, not the current path.")
-    if not path_.is_dir():
-        raise ValueError(f"{path_} is not a directory.")
-    while path_ != Path("."):
-        if not (path_ / "__init__.py").is_file():
-            raise ValueError(
-                f"{(load_module_path / '__init__.py')} does not exist. Should be a python module."
-            )
-        path_ = path_.parent
+    if not load_module_path.is_dir():
+        raise ValueError(f"{load_module_path} is not a directory.")
 
-    # Get the relative module name
-    load_module = str(load_module_path).replace(os.sep, ".")
-    mod = importlib.import_module(load_module)
+    # Get all complainers
     all_complainers: List[Complainer] = []
-    for item_name in mod.__dict__:
-        if not item_name.startswith("_"):
-            item = getattr(mod, item_name)
-            if isinstance(item, type) and issubclass(item, Complainer):
-                # Initialize the item and add it to all complainers
-                all_complainers.append(item())
+
+    # Check for an __init__.py
+    IS_MODULE = (load_module_path / "__init__.py").is_file()
+
+    # get complainers by loading a module with an __init__.py
+    if IS_MODULE:
+        # Get the relative module name
+        load_module = str(load_module_path).replace(os.sep, ".")
+
+        # Load the complainers within the module
+        mod = importlib.import_module(load_module)
+        for item_name in mod.__dict__:
+            if not item_name.startswith("_"):
+                item = getattr(mod, item_name)
+                if isinstance(item, type) and issubclass(item, Complainer):
+                    # Initialize the item and add it to all complainers
+                    all_complainers.append(item())
+
+    # get complainers by loading a list of files in a directory
+    else:
+        # For all files in the target folder.
+        for file1 in load_module_path.iterdir():
+            # If file starts from letter and ends with .py
+            if file1.is_file() and file1.suffix == ".py":
+                # Import each file as a module from it's full path.
+                spec = importlib.util.spec_from_file_location(
+                    ".", load_module_path / file1
+                )
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)  # type: ignore
+                # For each object definition that is a class.
+                for _name, obj in inspect.getmembers(mod, inspect.isclass):
+                    if issubclass(obj, Complainer) and obj != Complainer:
+                        all_complainers.append(obj())
 
     if not all_complainers:
         raise ValueError(f"No Complainers found in module from {load_module_path}.")
@@ -102,18 +124,23 @@ def main() -> None:
         # Add all globs and captures to the dict
         all_files: Set[Path] = set()
         for g in complainer.glob:
-            all_files |= set(analyze_dir.rglob(g))
+            for f in analyze_dir.rglob(g):
+                if f.is_file():
+                    all_files.add(f)
         if complainer.exclude_glob:
             for g in complainer.exclude_glob:
-                all_files -= set(analyze_dir.rglob(g))
-        for file in all_files:
-            if file.is_file():
-                if isinstance(complainer.capture, str):
-                    complainer.capture = Regex(
-                        complainer.capture, flags=complainer.regex_options
-                    )
-                all_captures_files[file].add(complainer.capture)
-                complainer_to_files[complainer].add(file)
+                for f in analyze_dir.rglob(g):
+                    if f.is_file():
+                        with suppress(KeyError):
+                            all_files.remove(f)
+
+        for file1 in all_files:
+            if isinstance(complainer.capture, str):
+                complainer.capture = Regex(
+                    complainer.capture, flags=complainer.regex_options
+                )
+            all_captures_files[file1].add(complainer.capture)
+            complainer_to_files[complainer].add(file1)
 
     # Get git repo information
     try:
@@ -133,19 +160,19 @@ def main() -> None:
 
     # Iterate over all captures and globs
     N_WARNINGS, N_CRITICAL = 0, 0
-    for file, captures in all_captures_files.items():
+    for file2, captures in all_captures_files.items():
         # Check if file is staged for git commit if args.git is true
-        if args.staged and file not in staged_files:
+        if args.staged and file2 not in staged_files:
             continue
 
         # Check if file is untracked if we are in a git repo
-        if (not args.include_untracked) and (file.absolute() in untracked_files):
+        if (not args.include_untracked) and (file2.absolute() in untracked_files):
             continue
 
         # Open the file
-        with file.open("r") as f:
+        with file2.open("r") as f2:
             try:
-                txt: str = f.read()
+                txt: str = f2.read()
             except UnicodeDecodeError:
                 continue
 
@@ -160,13 +187,13 @@ def main() -> None:
                 for complainer in capture_to_complainer[capture]:
 
                     # Skip if this file is not specifically globbed by this complainer
-                    if file not in complainer_to_files[complainer]:
+                    if file2 not in complainer_to_files[complainer]:
                         continue
 
                     complaints = complainer.check(
                         txt=txt,
                         capture_span=(start, stop),
-                        path=file,
+                        path=file2,
                         capture_data=match,
                     )
 
