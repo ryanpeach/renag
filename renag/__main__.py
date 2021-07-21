@@ -109,7 +109,7 @@ def main() -> None:
 
     print("Found Complainers:")
     for c in all_complainers:
-        print("  - " + type(c).__module__ + "." + type(c).__name__)
+        print("  - " + str(type(c)))
 
     print(color_txt(f"Running renag analyzer on '{analyze_dir}'..", BColors.OKGREEN))
 
