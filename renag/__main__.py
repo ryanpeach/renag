@@ -73,7 +73,6 @@ def main() -> None:
 
     # Get the relative module name
     load_module = str(load_module_path).replace(os.sep, ".")
-
     mod = importlib.import_module(load_module)
     all_complainers: List[Complainer] = []
     for item_name in mod.__dict__:
@@ -83,12 +82,10 @@ def main() -> None:
                 # Initialize the item and add it to all complainers
                 all_complainers.append(item())
 
-    print("Found Complainers:")
-    for c in all_complainers:
-        print("  - " + type(c).__module__ + "." + type(c).__name__)
-
     if not all_complainers:
-        raise ValueError(f"No Complainers found in module {load_module}.")
+        raise ValueError(f"No Complainers found in module from {load_module_path}.")
+
+    print(color_txt(f"Running renag analyzer on '{analyze_dir}'..", BColors.OKGREEN))
 
     # Get all the captures and globs of all complainers
     all_captures_files: Dict[Path, Set[ParserElement]] = defaultdict(set)
@@ -135,9 +132,8 @@ def main() -> None:
         untracked_files = {Path(path).absolute() for path in repo.untracked_files}
 
     # Iterate over all captures and globs
-    N, N_WARNINGS, N_CRITICAL = 0, 0, 0
+    N_WARNINGS, N_CRITICAL = 0, 0
     for file, captures in all_captures_files.items():
-
         # Check if file is staged for git commit if args.git is true
         if args.staged and file not in staged_files:
             continue
@@ -175,34 +171,49 @@ def main() -> None:
                     )
 
                     for complaint in complaints:
-                        N += 1
                         if complaint.severity is Severity.CRITICAL:
                             N_CRITICAL += 1
                         else:
                             N_WARNINGS += 1
 
-                        print(complaint.pformat(context_nb_lines=context_nb_lines))
-                        print()
+                        print(
+                            complaint.pformat(context_nb_lines=context_nb_lines),
+                            end="\n\n",
+                        )
+
+    # In the end, we try to call .finalize() on each complainer. Its purpose is
+    # to allow for complainers to have methods that will be called once, in the end.
+    for capture in captures:
+        for complainer in capture_to_complainer[capture]:
+            complaints = complainer.finalize()
+            for complaint in complaints:
+                if complaint.severity == Severity.CRITICAL:
+                    N_CRITICAL += 1
+                else:
+                    N_WARNINGS += 1
+
+                print(
+                    complaint.pformat(context_nb_lines=context_nb_lines), end="\n\n",
+                )
 
     # End by exiting the program
-    if N == 0:
-        print(color_txt("No complaints. Enjoy the rest of your day!", BColors.OKGREEN))
+    N = N_WARNINGS + N_CRITICAL
+    if not N:
+        print(color_txt("Renag finished with no complaints.", BColors.OKGREEN))
         exit(0)
-    if N_WARNINGS > 0 and N_CRITICAL == 0:
-        print(
-            color_txt(
-                f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
-                BColors.WARNING,
-            )
-        )
-        exit(0)
+
     print(
         color_txt(
             f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
             BColors.WARNING,
         )
     )
-    exit(1)
+
+    # If has critical errors - exit with non-zero code..
+    if N_CRITICAL != 0:
+        exit(1)
+    # ..else quit early.
+    exit(0)
 
 
 if __name__ == "__main__":

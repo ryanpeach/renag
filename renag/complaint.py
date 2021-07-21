@@ -52,7 +52,7 @@ class Complaint:
         # The first line is a description of the error as well as the class and severity
         out: List[str] = textwrap.wrap(
             color_txt(
-                f"{self.severity} - {self.cls.__name__}: {self.description}",
+                f"{self.severity.name} - {self.cls.__name__}: {self.description}",
                 BColors.WARNING if self.severity == Severity.WARNING else BColors.FAIL,
             ),
             width=120,
@@ -70,7 +70,7 @@ class Complaint:
                 txt = f.read()
 
             txt_split = txt.splitlines()
-            numbered_txt_split = list(enumerate(txt_split))
+            numbered_txt_split = [(i + 1, line) for i, line in enumerate(txt_split)]
 
             # Add a new line if in long mode
             if context_nb_lines > 0:
@@ -191,7 +191,6 @@ class Complaint:
                             out.append(
                                 f"{str(this_line_num + 1).rjust(6)}| {color_txt('^'*len(line), BColors.OKCYAN)}"
                             )
-
                 if note:
                     line = out.pop()
                     out += textwrap.wrap(
