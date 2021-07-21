@@ -55,7 +55,7 @@ def main() -> None:
     if not args.analyze_dir.is_dir():
         raise ValueError(f"{args.analyze_dir} is not a directory.")
 
-    load_module_path = Path(args.load_module).absolute()
+    load_module_path = Path(args.load_module).relative_to(".")
     analyze_dir = Path(args.analyze_dir).absolute()
     context_nb_lines = max(int(args.n), 0)
 

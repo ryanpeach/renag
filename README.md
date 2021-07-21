@@ -72,9 +72,11 @@ root/
   ...
 ```
 
-Import each complainer inside `__init__.py` so it can be imported via `from .{complainers_dir_name} import *`.
+Optionally, you can just put them inside a folder without `__init__.py` and they will be imported individually (but not within subfolders). Do this for most simple projects.
 
-Then add the following to your `.pre-commit-hooks.yaml` file:
+If you choose to use the module method, import each complainer inside `__init__.py` so it can be imported via `from .{complainers_dir_name} import *`.
+
+Regardless of which method you chose, next you need to add the following to your `.pre-commit-hooks.yaml` file:
 
 ```yaml
 - repo: https://github.com/ryanpeach/renag

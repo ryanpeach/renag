@@ -10,24 +10,6 @@ from renag.utils import color_txt, get_line_sep
 class Complaint:
     """A single complaint. Used for pretty printing the output."""
 
-    #: The class of complainer this complaint comes from
-    cls: Type
-
-    #: The string representation of this complaint
-    description: str
-
-    #: A string representation of a way to fix the problem
-    help: Optional[str]
-
-    #: The spans in all the relevant files along with a note for why they are relevant
-    file_spans: Dict[Path, Dict[Span, Optional[Note]]]
-
-    #: The filepath of the orginal text.
-    file_path: Path
-
-    #: The severity of the complaint
-    severity: Severity
-
     def __init__(
         self,
         cls: Type,
@@ -37,18 +19,41 @@ class Complaint:
         help: Optional[str] = None,
     ) -> None:
         """
-        Basic init saving the slice and a string representation of the complaint.
+        A single complaint. Used for pretty printing the output.
 
-        TODO: Make this more complicated for better formatting of complaint messages.
+        Parameters
+        ----------
+        cls : Type
+            The class of complainer this complaint comes from.
+        file_spans : Dict[Path, Dict[Span, Optional[Note]]]
+            The spans in all the relevant files along with a note for why they are relevant.
+        description : str
+            The string representation of this complaint.
+        severity : Severity
+            The severity of the complaint.
+        help : Optional[str], optional
+            A string representation of a way to fix the problem.
         """
-        self.cls = cls
-        self.file_spans = file_spans
-        self.description = description
-        self.help = help
-        self.severity = severity
+        self.cls: Type = cls
+        self.file_spans: Dict[Path, Dict[Span, Optional[Note]]] = file_spans
+        self.description: str = description
+        self.help: Optional[str] = help
+        self.severity: Severity = severity
 
     def pformat(self, context_nb_lines: int = 1) -> str:
-        """A way to get the complaints pretty formatted string for printing."""
+        """
+        A way to get the complaints pretty formatted string for printing.
+
+        Parameters
+        ----------
+        context_nb_lines : int, optional
+            The number of lines around the captured line to display, on top and bottom, by default 1
+
+        Returns
+        -------
+        str
+            The text to print on the screen for the user.
+        """
         # The first line is a description of the error as well as the class and severity
         out: List[str] = textwrap.wrap(
             color_txt(

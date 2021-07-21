@@ -2,9 +2,9 @@
 
 import re
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Union
 
-from pyparsing import ParserElement
+from pyparsing import ParserElement, ParseResults
 
 from renag.complaint import Complaint
 from renag.custom_types import GlobStr, RegexStr, Severity, Span
@@ -49,7 +49,7 @@ class Complainer:
         pass
 
     def check(
-        self, txt: str, path: Path, capture_span: Span, capture_data: Any
+        self, txt: str, path: Path, capture_span: Span, capture_data: ParseResults
     ) -> List[Complaint]:
         """
         Checks a piece of text and returns a list of complaints.
@@ -61,6 +61,24 @@ class Complainer:
         The default description is the docstring of the class.
 
         If no complaints are found, returns an empty list.
+
+
+        Parameters
+        ----------
+        txt : str
+            The captured text itself.
+        path : Path
+            The path of the file being scanned.
+        capture_span : Span
+            A 2-Tuple containing the character indexes of the captured text within the file.
+            The first int is inclusive, the second int is exclusive
+        capture_data : ParseResults
+            The first output of each tuple returned via `self.capture.scanString(txt)`.
+
+        Returns
+        -------
+        List[Complaint]
+            A list of complaints.
         """
         if not self.__doc__:
             self.__doc__ = f"This error message needs to be replaced via a docstring for this complaint: {type(self)}"
@@ -84,5 +102,10 @@ class Complainer:
         are saved in some kind of dictionary internal to this complainer instance (which will persist over all files) and then
         analyzes that dictionary for bad outcomes. Like maybe you want to check for naming conflicts! Or that there are
         exactly 5 global variables for some reason. This is the place to do that.
+
+        Returns
+        -------
+        List[Complaint]
+            A list of complaints.
         """
         return []
