@@ -70,7 +70,7 @@ class Complaint:
                 txt = f.read()
 
             txt_split = txt.splitlines()
-            numbered_txt_split = [(i + 1, line) for i, line in enumerate(txt_split)]
+            numbered_txt_split = list(enumerate(txt_split))
 
             # Add a new line if in long mode
             if context_nb_lines > 0:
