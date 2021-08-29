@@ -24,8 +24,8 @@ def main() -> None:
         "--load_module",
         type=str,
         default="./complainers",
-        help="A local python module (folder) containing all complainers. "
-        "A directory with an __init__.py inside it. "
+        help="A local python module or just a folder containing all complainers. "
+        "The difference is that the module must contain a '__init__.py' file inside it. "
         "The module needs to supply all complainers via `from $load_module import *`.",
     )
     parser.add_argument(
@@ -212,18 +212,20 @@ def main() -> None:
 
     # In the end, we try to call .finalize() on each complainer. Its purpose is
     # to allow for complainers to have methods that will be called once, in the end.
-    for capture in captures:
-        for complainer in capture_to_complainer[capture]:
-            complaints = complainer.finalize()
-            for complaint in complaints:
-                if complaint.severity == Severity.CRITICAL:
-                    N_CRITICAL += 1
-                else:
-                    N_WARNINGS += 1
+    for complainer in all_complainers:
+        if not hasattr(complainer, "finalize"):
+            continue
 
-                print(
-                    complaint.pformat(context_nb_lines=context_nb_lines), end="\n\n",
-                )
+        complaints = complainer.finalize()
+        for complaint in complaints:
+            if complaint.severity == Severity.CRITICAL:
+                N_CRITICAL += 1
+            else:
+                N_WARNINGS += 1
+
+            print(
+                complaint.pformat(context_nb_lines=context_nb_lines), end="\n\n",
+            )
 
     # End by exiting the program
     N = N_WARNINGS + N_CRITICAL
