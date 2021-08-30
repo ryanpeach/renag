@@ -41,6 +41,11 @@ def main() -> None:
         help="The number of lines before and after an error to show in context.",
     )
     parser.add_argument(
+        "--inline",
+        action="store_true",
+        help="Enable this option with zero chosen lines ('-n=0') to show error inline.",
+    )
+    parser.add_argument(
         "--staged",
         action="store_true",
         help="Only glob files that are staged for git commit.",
@@ -50,6 +55,7 @@ def main() -> None:
         action="store_true",
         help="Also include untracked files from git in glob.",
     )
+
     args = parser.parse_args()
     args.analyze_dir = Path(args.analyze_dir).absolute()
     if not args.analyze_dir.is_dir():
@@ -62,6 +68,7 @@ def main() -> None:
     # Handle some basic tests
     if load_module_path == Path("."):
         raise ValueError(f"load_module should be a subdirectory, not the current path.")
+
     if not load_module_path.is_dir():
         raise ValueError(f"{load_module_path} is not a directory.")
 
@@ -78,12 +85,10 @@ def main() -> None:
 
         # Load the complainers within the module
         mod = importlib.import_module(load_module)
-        for item_name in mod.__dict__:
-            if not item_name.startswith("_"):
-                item = getattr(mod, item_name)
-                if isinstance(item, type) and issubclass(item, Complainer):
-                    # Initialize the item and add it to all complainers
-                    all_complainers.append(item())
+        for _name, obj in inspect.getmembers(mod, inspect.isclass):
+            if issubclass(obj, Complainer) and obj != Complainer:
+                # Initialize the item and add it to all complainers
+                all_complainers.append(obj())
 
     # get complainers by loading a list of files in a directory
     else:
@@ -93,17 +98,20 @@ def main() -> None:
             if file1.is_file() and file1.suffix == ".py":
                 # Import each file as a module from it's full path.
                 spec = importlib.util.spec_from_file_location(
-                    ".", load_module_path.parent.absolute() / file1
+                    ".", load_module_path.absolute() / file1.name
                 )
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)  # type: ignore
+
                 # For each object definition that is a class.
                 for _name, obj in inspect.getmembers(mod, inspect.isclass):
                     if issubclass(obj, Complainer) and obj != Complainer:
                         all_complainers.append(obj())
 
     if not all_complainers:
-        raise ValueError(f"No Complainers found in module from {load_module_path}.")
+        raise ValueError(
+            f"No Complainers found in module from {load_module_path.absolute()}."
+        )
 
     print(color_txt("Found Complainers:", BColors.OKGREEN))
     for c in all_complainers:
@@ -128,9 +136,24 @@ def main() -> None:
         # Get all the files to analyze
         all_files: Set[Path] = set()
         for g in complainer.glob:
+            if not g:
+                print(
+                    color_txt(
+                        f"Glob is '{g}' will include directories, which will result in an error!",
+                        BColors.WARNING,
+                    )
+                )
             all_files |= set(analyze_dir.rglob(g))
+
         if complainer.exclude_glob:
             for g in complainer.exclude_glob:
+                if not g:
+                    print(
+                        color_txt(
+                            f"Glob is '{g}' will include directories, which will result in an error!",
+                            BColors.WARNING,
+                        )
+                    )
                 all_files -= set(analyze_dir.rglob(g))
 
         # Add all files and captures to the dicts
@@ -207,7 +230,10 @@ def main() -> None:
                             N_WARNINGS += 1
 
                         print(
-                            complaint.pformat(context_nb_lines=context_nb_lines),
+                            complaint.pformat(
+                                context_nb_lines=context_nb_lines,
+                                inline_mode=args.inline,
+                            ),
                             end="\n\n",
                         )
 
@@ -225,7 +251,10 @@ def main() -> None:
                 N_WARNINGS += 1
 
             print(
-                complaint.pformat(context_nb_lines=context_nb_lines), end="\n\n",
+                complaint.pformat(
+                    context_nb_lines=context_nb_lines, inline_mode=args.inline
+                ),
+                end="\n\n",
             )
 
     # End by exiting the program
