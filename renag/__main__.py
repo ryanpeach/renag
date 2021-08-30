@@ -9,12 +9,25 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set
 
-import git
 from pyparsing import Empty, ParserElement, Regex
 
 from renag.complainer import Complainer
 from renag.custom_types import BColors, Severity
 from renag.utils import color_txt
+
+try:
+    import git
+except ImportError:
+    # Note: This is not an issue since we suppress all errors from git call below.
+    git = None
+    print(
+        color_txt(
+            "There was an error importing 'git' module! Please make sure that 'git' "
+            "is available in your $PATH or $GIT_PYTHON_GIT_EXECUTABLE. Note: because "
+            "of this, any git-related flags will not work!",
+            BColors.WARNING,
+        )
+    )
 
 
 def main() -> None:
