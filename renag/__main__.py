@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Set
 
 import git
-from pyparsing import ParserElement, Regex
+from pyparsing import Empty, ParserElement, Regex
 
 from renag.complainer import Complainer
 from renag.custom_types import BColors, Severity
@@ -108,9 +108,7 @@ def main() -> None:
     print(color_txt("Found Complainers:", BColors.OKGREEN))
     for c in all_complainers:
         print(
-            color_txt(
-                "  - " + type(c).__module__ + "." + type(c).__name__, BColors.OKGREEN
-            )
+            color_txt(f"  - {type(c).__module__}.{type(c).__name__}", BColors.OKGREEN)
         )
 
     print(color_txt(f"Running renag analyzer on '{analyze_dir}'..", BColors.OKGREEN))
@@ -138,9 +136,12 @@ def main() -> None:
         # Add all files and captures to the dicts
         for file1 in all_files:
             if isinstance(complainer.capture, str):
-                complainer.capture = Regex(
-                    complainer.capture, flags=complainer.regex_options
-                )
+                if complainer.capture:
+                    _capture = Regex(complainer.capture, flags=complainer.regex_options)
+                else:
+                    _capture = Empty()
+                complainer.capture = _capture
+
             all_captures_files[file1].add(complainer.capture)
             complainer_to_files[complainer].add(file1)
 
