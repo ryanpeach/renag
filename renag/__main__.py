@@ -130,6 +130,15 @@ def main() -> None:
         if not complainer.glob:
             raise ValueError(f"Empty glob inside {complainer}: {complainer.glob}")
 
+        # Avoid later issue with complainer.capture being empty for the 'Regex' from pyparsing.
+        # Note: Has to do it this early, because below we start mapping it to the complainers by capture.
+        if isinstance(complainer.capture, str) and not complainer.capture:
+            complainer.capture = Empty()
+        elif isinstance(complainer.capture, str):
+            complainer.capture = Regex(
+                complainer.capture, flags=complainer.regex_options
+            )
+
         # Map the capture to all complainers
         capture_to_complainer[complainer.capture].append(complainer)
 
@@ -137,34 +146,21 @@ def main() -> None:
         all_files: Set[Path] = set()
         for g in complainer.glob:
             if not g:
-                print(
-                    color_txt(
-                        f"Glob is '{g}' will include directories, which will result in an error!",
-                        BColors.WARNING,
-                    )
+                raise ValueError(
+                    f"Empty glob value inside {complainer} ({complainer.glob}): {g}"
                 )
             all_files |= set(analyze_dir.rglob(g))
 
         if complainer.exclude_glob:
             for g in complainer.exclude_glob:
                 if not g:
-                    print(
-                        color_txt(
-                            f"Glob is '{g}' will include directories, which will result in an error!",
-                            BColors.WARNING,
-                        )
+                    raise ValueError(
+                        f"Empty exclude glob value inside {complainer} ({complainer.exclude_glob}): {g}"
                     )
                 all_files -= set(analyze_dir.rglob(g))
 
         # Add all files and captures to the dicts
         for file1 in all_files:
-            if isinstance(complainer.capture, str):
-                if complainer.capture:
-                    _capture = Regex(complainer.capture, flags=complainer.regex_options)
-                else:
-                    _capture = Empty()
-                complainer.capture = _capture
-
             all_captures_files[file1].add(complainer.capture)
             complainer_to_files[complainer].add(file1)
 
