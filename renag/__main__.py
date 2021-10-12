@@ -9,12 +9,25 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set
 
-import git
-from pyparsing import ParserElement, Regex
+from pyparsing import Empty, ParserElement, Regex
 
 from renag.complainer import Complainer
 from renag.custom_types import BColors, Severity
 from renag.utils import color_txt
+
+try:
+    import git
+except ImportError:
+    # Note: This is not an issue since we suppress all errors from git call below.
+    git = None
+    print(
+        color_txt(
+            "There was an error importing 'git' module! Please make sure that 'git' "
+            "is available in your $PATH or $GIT_PYTHON_GIT_EXECUTABLE. Note: because "
+            "of this, any git-related flags will not work!",
+            BColors.WARNING,
+        )
+    )
 
 
 def main() -> None:
@@ -24,8 +37,8 @@ def main() -> None:
         "--load_module",
         type=str,
         default="./complainers",
-        help="A local python module (folder) containing all complainers. "
-        "A directory with an __init__.py inside it. "
+        help="A local python module or just a folder containing all complainers. "
+        "The difference is that the module must contain a '__init__.py' file inside it. "
         "The module needs to supply all complainers via `from $load_module import *`.",
     )
     parser.add_argument(
@@ -41,6 +54,11 @@ def main() -> None:
         help="The number of lines before and after an error to show in context.",
     )
     parser.add_argument(
+        "--inline",
+        action="store_true",
+        help="Enable this option with zero chosen lines ('-n=0') to show error inline.",
+    )
+    parser.add_argument(
         "--staged",
         action="store_true",
         help="Only glob files that are staged for git commit.",
@@ -50,6 +68,7 @@ def main() -> None:
         action="store_true",
         help="Also include untracked files from git in glob.",
     )
+
     args = parser.parse_args()
     args.analyze_dir = Path(args.analyze_dir).absolute()
     if not args.analyze_dir.is_dir():
@@ -62,6 +81,7 @@ def main() -> None:
     # Handle some basic tests
     if load_module_path == Path("."):
         raise ValueError(f"load_module should be a subdirectory, not the current path.")
+
     if not load_module_path.is_dir():
         raise ValueError(f"{load_module_path} is not a directory.")
 
@@ -78,12 +98,10 @@ def main() -> None:
 
         # Load the complainers within the module
         mod = importlib.import_module(load_module)
-        for item_name in mod.__dict__:
-            if not item_name.startswith("_"):
-                item = getattr(mod, item_name)
-                if isinstance(item, type) and issubclass(item, Complainer):
-                    # Initialize the item and add it to all complainers
-                    all_complainers.append(item())
+        for _name, obj in inspect.getmembers(mod, inspect.isclass):
+            if issubclass(obj, Complainer) and obj != Complainer:
+                # Initialize the item and add it to all complainers
+                all_complainers.append(obj())
 
     # get complainers by loading a list of files in a directory
     else:
@@ -93,24 +111,25 @@ def main() -> None:
             if file1.is_file() and file1.suffix == ".py":
                 # Import each file as a module from it's full path.
                 spec = importlib.util.spec_from_file_location(
-                    ".", load_module_path.parent.absolute() / file1
+                    ".", load_module_path.absolute() / file1.name
                 )
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)  # type: ignore
+
                 # For each object definition that is a class.
                 for _name, obj in inspect.getmembers(mod, inspect.isclass):
                     if issubclass(obj, Complainer) and obj != Complainer:
                         all_complainers.append(obj())
 
     if not all_complainers:
-        raise ValueError(f"No Complainers found in module from {load_module_path}.")
+        raise ValueError(
+            f"No Complainers found in module from {load_module_path.absolute()}."
+        )
 
     print(color_txt("Found Complainers:", BColors.OKGREEN))
     for c in all_complainers:
         print(
-            color_txt(
-                "  - " + type(c).__module__ + "." + type(c).__name__, BColors.OKGREEN
-            )
+            color_txt(f"  - {type(c).__module__}.{type(c).__name__}", BColors.OKGREEN)
         )
 
     print(color_txt(f"Running renag analyzer on '{analyze_dir}'..", BColors.OKGREEN))
@@ -124,23 +143,37 @@ def main() -> None:
         if not complainer.glob:
             raise ValueError(f"Empty glob inside {complainer}: {complainer.glob}")
 
+        # Avoid later issue with complainer.capture being empty for the 'Regex' from pyparsing.
+        # Note: Has to do it this early, because below we start mapping it to the complainers by capture.
+        if isinstance(complainer.capture, str) and not complainer.capture:
+            complainer.capture = Empty()
+        elif isinstance(complainer.capture, str):
+            complainer.capture = Regex(
+                complainer.capture, flags=complainer.regex_options
+            )
+
         # Map the capture to all complainers
         capture_to_complainer[complainer.capture].append(complainer)
 
         # Get all the files to analyze
         all_files: Set[Path] = set()
         for g in complainer.glob:
+            if not g:
+                raise ValueError(
+                    f"Empty glob value inside {complainer} ({complainer.glob}): {g}"
+                )
             all_files |= set(analyze_dir.rglob(g))
+
         if complainer.exclude_glob:
             for g in complainer.exclude_glob:
+                if not g:
+                    raise ValueError(
+                        f"Empty exclude glob value inside {complainer} ({complainer.exclude_glob}): {g}"
+                    )
                 all_files -= set(analyze_dir.rglob(g))
 
         # Add all files and captures to the dicts
         for file1 in all_files:
-            if isinstance(complainer.capture, str):
-                complainer.capture = Regex(
-                    complainer.capture, flags=complainer.regex_options
-                )
             all_captures_files[file1].add(complainer.capture)
             complainer_to_files[complainer].add(file1)
 
@@ -206,24 +239,32 @@ def main() -> None:
                             N_WARNINGS += 1
 
                         print(
-                            complaint.pformat(context_nb_lines=context_nb_lines),
+                            complaint.pformat(
+                                context_nb_lines=context_nb_lines,
+                                inline_mode=args.inline,
+                            ),
                             end="\n\n",
                         )
 
     # In the end, we try to call .finalize() on each complainer. Its purpose is
     # to allow for complainers to have methods that will be called once, in the end.
-    for capture in captures:
-        for complainer in capture_to_complainer[capture]:
-            complaints = complainer.finalize()
-            for complaint in complaints:
-                if complaint.severity == Severity.CRITICAL:
-                    N_CRITICAL += 1
-                else:
-                    N_WARNINGS += 1
+    for complainer in all_complainers:
+        if not hasattr(complainer, "finalize"):
+            continue
 
-                print(
-                    complaint.pformat(context_nb_lines=context_nb_lines), end="\n\n",
-                )
+        complaints = complainer.finalize()
+        for complaint in complaints:
+            if complaint.severity == Severity.CRITICAL:
+                N_CRITICAL += 1
+            else:
+                N_WARNINGS += 1
+
+            print(
+                complaint.pformat(
+                    context_nb_lines=context_nb_lines, inline_mode=args.inline
+                ),
+                end="\n\n",
+            )
 
     # End by exiting the program
     N = N_WARNINGS + N_CRITICAL

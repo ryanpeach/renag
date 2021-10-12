@@ -40,7 +40,7 @@ class Complaint:
         self.help: Optional[str] = help
         self.severity: Severity = severity
 
-    def pformat(self, context_nb_lines: int = 1) -> str:
+    def pformat(self, context_nb_lines: int = 1, inline_mode: bool = False) -> str:
         """
         A way to get the complaints pretty formatted string for printing.
 
@@ -48,6 +48,8 @@ class Complaint:
         ----------
         context_nb_lines : int, optional
             The number of lines around the captured line to display, on top and bottom, by default 1
+        inline_mode : bool, optional
+            An additional argument, that makes sense only when 'context_nb_lines' is 0. Specifies that error message should be inlined.
 
         Returns
         -------
@@ -132,6 +134,7 @@ class Complaint:
                 # Print line numbers
                 if (context_nb_lines == 0 and file_num == 0) or context_nb_lines > 0:
                     out[-1] += " --> "
+
                 out[-1] += color_txt(
                     str(file_path.relative_to(str(Path(".").absolute()))),
                     BColors.HEADER,
@@ -152,7 +155,7 @@ class Complaint:
                     out[-1] += ", "
 
                 # Short Mode
-                if context_nb_lines == 0:
+                if context_nb_lines == 0 and inline_mode:
                     continue
 
                 # Next is a snippet of text that the error comes from
