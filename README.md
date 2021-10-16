@@ -153,6 +153,9 @@ This project uses [Bumpversion](https://github.com/peritus/bumpversion).
 
 To make a patch release (for example) run:
 
-`poetry run bumpversion patch`
+```bash
+poetry run bumpversion patch
+git push && git push --tags
+```
 
-Then commit it! Travis will take care of the rest.
+Then push it (with tags)! Travis will take care of the rest.
