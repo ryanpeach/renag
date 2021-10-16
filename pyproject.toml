@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "renag"
-version = "0.4.2"
+version = "0.4.3"
 description = "A Regex based linter tool that works for any language and works exclusively with custom linting rules."
 authors = ["Ryan <ryanpeach@icloud.com>"]
 
