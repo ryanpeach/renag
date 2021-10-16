@@ -159,3 +159,5 @@ git push && git push --tags
 ```
 
 Then push it (with tags)! Travis will take care of the rest.
+
+When it's all done I like to author a "[Release](https://github.com/ryanpeach/renag/releases)" on GitHub manually.
