@@ -80,7 +80,7 @@ Regardless of which method you chose, next you need to add the following to your
 
 ```yaml
 - repo: https://github.com/ryanpeach/renag
-  rev: "0.4.3"
+  rev: "0.4.4"
   hooks:
     - id: renag
       args:
