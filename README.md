@@ -63,7 +63,7 @@ Simply put this complainer in a python module in your project like so:
 
 ```
 root/
-  complainers_dir_name/
+  complainers_dir_name/  # Default is "complainers"
     __init__.py
     custom_complainer1.py
     custom_complainer2.py
@@ -116,3 +116,43 @@ Severity.WARNING - EasyPrintComplainer: Print statements can slow down code.
 
 All regex captures in this module default to using `iregex`.
 `iregex` can help make your regex more understandable to readers, and allow you to compose large regex statements (see `examples/regex.py` for examples).
+
+# Contribution
+
+Feel free to make a contribution! Here are some instructions for getting setup.
+
+## Virtual Environment
+
+This project uses [Poetry](https://python-poetry.org/). So you pretty much just use `poetry run ${YOUR_COMMAND_HERE}` from the project root directory to run stuff.
+
+## CICD
+
+This project uses [TravisCI](https://www.travis-ci.com/). The steps are explained in `.travis.yaml`. Basically automatically runs `poetry publish`
+
+## Documentation
+
+Documentation is provided via Sphinx and [autodoc](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html). Meaning properly formatted docstrings become documentation. However, if you create a new file in `renag` you need to create a new file in `docsrc/renag` of the same name following the formatting of the other `.rst` files.
+
+## Testing
+
+We use `pytest`, `mypy`, and `flake8`, running `renag` itself on the `complaints` directory, and then I have strategically set up a few runtime warnings in the code to pick out based on the examples inside `examples`.
+
+`mypy` and `flake8` are part of the pre-commit hooks.
+
+So a full test involves running:
+
+```bash
+poetry run pytest
+poetry run renag
+poetry run renag --load_module examples
+```
+
+## Making a new release
+
+This project uses [Bumpversion](https://github.com/peritus/bumpversion).
+
+To make a patch release (for example) run:
+
+`poetry run bumpversion patch`
+
+Then commit it! Travis will take care of the rest.
