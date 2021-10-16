@@ -3,7 +3,7 @@ from renag.complainer import Complainer, Complaint
 from renag.custom_types import Severity, Span
 from renag.utils import get_line_sep, get_lines_and_numbers
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 __all__ = [
     "Complainer",
