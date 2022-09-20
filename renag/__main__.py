@@ -4,6 +4,7 @@ This module runs the code from the commandline.
 import argparse
 import importlib.util
 import inspect
+from logging import Logger
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -29,6 +30,13 @@ except ImportError:
         )
     )
 
+def get_logger(severity: Severity) -> Logger:
+    """Returns a logger with the appropriate severity."""
+    import logging
+
+    logger = logging.getLogger("renag")
+    logger.setLevel(severity)
+    return logger
 
 def main() -> None:
     """Main function entrypoint."""
@@ -68,7 +76,14 @@ def main() -> None:
         action="store_true",
         help="Also include untracked files from git in glob.",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print out DEBUG level logs.",
+    )
 
+    logger = get_logger("DEBUG" if args.verbose else "INFO")
     args = parser.parse_args()
     args.analyze_dir = Path(args.analyze_dir).absolute()
     if not args.analyze_dir.is_dir():
@@ -135,7 +150,7 @@ def main() -> None:
     print(color_txt(f"Running renag analyzer on '{analyze_dir}'..", BColors.OKGREEN))
 
     # Get all the captures and globs of all complainers
-    all_captures_files: Dict[Path, Set[ParserElement]] = defaultdict(set)
+    all_complainer_files: Dict[Path, Set[Complainer]] = defaultdict(set)
     capture_to_complainer: Dict[ParserElement, List[Complainer]] = defaultdict(list)
     complainer_to_files: Dict[Complainer, Set[Path]] = defaultdict(set)
     for complainer in all_complainers:
@@ -174,7 +189,7 @@ def main() -> None:
 
         # Add all files and captures to the dicts
         for file1 in all_files:
-            all_captures_files[file1].add(complainer.capture)
+            all_complainer_files[file1].add(complainer)
             complainer_to_files[complainer].add(file1)
 
     # Get git repo information
@@ -195,7 +210,7 @@ def main() -> None:
 
     # Iterate over all captures and globs
     N_WARNINGS, N_CRITICAL = 0, 0
-    for file2, captures in all_captures_files.items():
+    for file2, complainers in all_complainer_files.items():
         # Check if file is staged for git commit if args.git is true
         if args.staged and file2 not in staged_files:
             continue
@@ -205,6 +220,7 @@ def main() -> None:
             continue
 
         # Open the file
+        logger.debug(f"Reading file: {file2}")
         with file2.open("r") as f2:
             try:
                 txt: str = f2.read()
@@ -213,9 +229,11 @@ def main() -> None:
 
         # Get the or of all captures
         # Then Iterate over all captures
-        for capture in captures:
+        for complainer in complainers:
+            capture = complainer.capture
 
             # Then Get all matches in the file
+            logger.debug(f"Parsing file {file2} with complainer {complainer}")
             for match, start, stop in capture.scanString(txt):
 
                 # Then iterate over all complainers

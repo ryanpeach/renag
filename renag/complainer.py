@@ -109,3 +109,15 @@ class Complainer:
             A list of complaints.
         """
         return []
+
+    def __hash__(self) -> int:
+        """
+        Hashes the complainer based on the capture string.
+        Useful for putting complainers into sets and dictionaries.
+
+        Returns
+        -------
+        int
+            The hash of the complainer by the capture string.
+        """
+        return hash(self.capture)
