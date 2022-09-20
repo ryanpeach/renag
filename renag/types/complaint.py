@@ -3,7 +3,7 @@ import textwrap
 from pathlib import Path
 from typing import Dict, List, Optional, Type
 
-from renag.custom_types import BColors, Note, Severity, Span
+from renag.types.custom_types import BColors, Note, Severity, Span
 from renag.utils import color_txt, get_line_sep
 
 
