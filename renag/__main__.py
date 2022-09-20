@@ -2,17 +2,20 @@
 This module runs the code from the commandline.
 """
 import argparse
+from dataclasses import dataclass
 import importlib.util
 import inspect
 from logging import Logger
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Set
+import sys
+from typing import Dict, Iterable, List, Set
 
 from pyparsing import Empty, ParserElement, Regex
 
 from renag.complainer import Complainer
+from renag.complaint import Complaint
 from renag.custom_types import BColors, Severity
 from renag.utils import color_txt
 
@@ -38,8 +41,13 @@ def get_logger(severity: Severity) -> Logger:
     logger.setLevel(severity)
     return logger
 
+logger = get_logger(Severity.DEBUG)
+
 def main() -> None:
-    """Main function entrypoint."""
+    """
+    Main function entrypoint.
+    Parses arguments and prints the complaints.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--load_module",
@@ -83,140 +91,223 @@ def main() -> None:
         help="Print out DEBUG level logs.",
     )
 
-    logger = get_logger("DEBUG" if args.verbose else "INFO")
     args = parser.parse_args()
+
+    # Overwrite the global logger if verbose is set
+    if args.verbose:
+        global logger
+        logger = get_logger("INFO")
+
     args.analyze_dir = Path(args.analyze_dir).absolute()
     if not args.analyze_dir.is_dir():
         raise ValueError(f"{args.analyze_dir} is not a directory.")
 
-    load_module_path = Path(args.load_module).relative_to(".")
-    analyze_dir = Path(args.analyze_dir).absolute()
-    context_nb_lines = max(int(args.n), 0)
+    LOAD_MODULE_PATH = Path(args.load_module).relative_to(".")
+    ANALYZE_DIR = Path(args.analyze_dir).absolute()
+    CONTEXT_NB_LINES = max(int(args.n), 0)
 
     # Handle some basic tests
-    if load_module_path == Path("."):
+    if LOAD_MODULE_PATH == Path("."):
         raise ValueError(f"load_module should be a subdirectory, not the current path.")
 
-    if not load_module_path.is_dir():
-        raise ValueError(f"{load_module_path} is not a directory.")
+    if not LOAD_MODULE_PATH.is_dir():
+        raise ValueError(f"{LOAD_MODULE_PATH} is not a directory.")
 
-    # Get all complainers
-    all_complainers: List[Complainer] = []
+    # Index the file system
+    cidx = ComplainerIndex(LOAD_MODULE_PATH, ANALYZE_DIR)
+    gitidx = GitIndex()
 
-    # Check for an __init__.py
-    IS_MODULE = (load_module_path / "__init__.py").is_file()
-
-    # get complainers by loading a module with an __init__.py
-    if IS_MODULE:
-        # Get the relative module name
-        load_module = str(load_module_path).replace(os.sep, ".")
-
-        # Load the complainers within the module
-        mod = importlib.import_module(load_module)
-        for _name, obj in inspect.getmembers(mod, inspect.isclass):
-            if issubclass(obj, Complainer) and obj != Complainer:
-                # Initialize the item and add it to all complainers
-                all_complainers.append(obj())
-
-    # get complainers by loading a list of files in a directory
-    else:
-        # For all files in the target folder.
-        for file1 in load_module_path.iterdir():
-            # If file starts from letter and ends with .py
-            if file1.is_file() and file1.suffix == ".py":
-                # Import each file as a module from it's full path.
-                spec = importlib.util.spec_from_file_location(
-                    ".", load_module_path.absolute() / file1.name
-                )
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)  # type: ignore
-
-                # For each object definition that is a class.
-                for _name, obj in inspect.getmembers(mod, inspect.isclass):
-                    if issubclass(obj, Complainer) and obj != Complainer:
-                        all_complainers.append(obj())
-
-    if not all_complainers:
-        raise ValueError(
-            f"No Complainers found in module from {load_module_path.absolute()}."
-        )
-
-    print(color_txt("Found Complainers:", BColors.OKGREEN))
-    for c in all_complainers:
+    # Parse the files and iterate over discovered complaints
+    # Print them directly to stderr
+    for complaint in parse_files(staged_only=args.staged, include_untracked=args.include_untracked, gitidx=gitidx, cidx=cidx):
+        if complaint.severity == Severity.CRITICAL:
+            N_CRITICAL += 1
+        else:
+            N_WARNINGS += 1
         print(
-            color_txt(f"  - {type(c).__module__}.{type(c).__name__}", BColors.OKGREEN)
+            complaint.pformat(
+                context_nb_lines=CONTEXT_NB_LINES, inline_mode=args.inline
+            ),
+            file=sys.stderr,
+            end="\n\n",
         )
 
-    print(color_txt(f"Running renag analyzer on '{analyze_dir}'..", BColors.OKGREEN))
+    N = N_WARNINGS + N_CRITICAL
+    if not N:
+        logger.info(color_txt("Renag finished with no complaints.", BColors.OKGREEN))
+        exit(0)
 
-    # Get all the captures and globs of all complainers
-    all_complainer_files: Dict[Path, Set[Complainer]] = defaultdict(set)
-    capture_to_complainer: Dict[ParserElement, List[Complainer]] = defaultdict(list)
-    complainer_to_files: Dict[Complainer, Set[Path]] = defaultdict(set)
-    for complainer in all_complainers:
-        # Make sure that glob is not an empty list
-        if not complainer.glob:
-            raise ValueError(f"Empty glob inside {complainer}: {complainer.glob}")
+    logger.info(
+        color_txt(
+            f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
+            BColors.WARNING,
+        )
+    )
 
-        # Avoid later issue with complainer.capture being empty for the 'Regex' from pyparsing.
-        # Note: Has to do it this early, because below we start mapping it to the complainers by capture.
-        if isinstance(complainer.capture, str) and not complainer.capture:
-            complainer.capture = Empty()
-        elif isinstance(complainer.capture, str):
-            complainer.capture = Regex(
-                complainer.capture, flags=complainer.regex_options
-            )
+    # If has critical errors - exit with non-zero code..
+    if N_CRITICAL != 0:
+        exit(1)
+    # ..else quit quietly.
+    exit(0)
 
-        # Map the capture to all complainers
-        capture_to_complainer[complainer.capture].append(complainer)
+@dataclass
+class GitIndex:
+    """
+    Calculates staged files and untracked files in the current git repo.
+    """
+    staged_files: Set[Path]
+    untracked_files: Set[Path]
 
-        # Get all the files to analyze
-        all_files: Set[Path] = set()
-        for g in complainer.glob:
-            if not g:
-                raise ValueError(
-                    f"Empty glob value inside {complainer} ({complainer.glob}): {g}"
-                )
-            all_files |= set(analyze_dir.rglob(g))
+    def __init__(self):
+        # Initialize variables
+        self.staged_files: Set[Path] = set()
+        self.untracked_files: Set[Path] = set()
 
-        if complainer.exclude_glob:
-            for g in complainer.exclude_glob:
-                if not g:
-                    raise ValueError(
-                        f"Empty exclude glob value inside {complainer} ({complainer.exclude_glob}): {g}"
-                    )
-                all_files -= set(analyze_dir.rglob(g))
-
-        # Add all files and captures to the dicts
-        for file1 in all_files:
-            all_complainer_files[file1].add(complainer)
-            complainer_to_files[complainer].add(file1)
-
-    # Get git repo information
-    try:
-        repo = git.Repo()
-    except:  # noqa: E722  I don't know what this might return if there isn't a git repo
-        staged_files: Set[Path] = set()
-        untracked_files: Set[Path] = set()
-    else:
-        if args.staged:
+        # Get git repo information
+        try:
+            repo = git.Repo()
+        except:  # noqa: E722  I don't know what this might return if there isn't a git repo
+            pass
+        else:
             staged_files_diffs = repo.index.diff("HEAD")
-            staged_files = {
+            self.staged_files = {
                 Path(repo.working_tree_dir) / diff.b_path for diff in staged_files_diffs
             }
-        else:
-            staged_files = set()
-        untracked_files = {Path(path).absolute() for path in repo.untracked_files}
+            self.untracked_files = {Path(path).absolute() for path in repo.untracked_files}
 
+
+@dataclass
+class ComplainerIndex:
+    """
+    Gets all the complainers in the current repository.
+    Indexes them by the files they access and vice versa.
+    """
+    all_complainers: List[Complainer]
+    file_to_complainers: Dict[Path, Set[Complainer]]
+    capture_to_complainer: Dict[ParserElement, List[Complainer]]
+    complainer_to_files: Dict[Complainer, Set[Path]]
+
+    def __init__(self, LOAD_MODULE_PATH: Path, ANALYZE_DIR: Path):
+        self.__load_complainers(LOAD_MODULE_PATH)
+        self.__index_files_by_complainer(ANALYZE_DIR)
+
+    def __load_complainers(self, LOAD_MODULE_PATH):
+        """
+        Load a list of all complainers from either a complainers folder or module.
+        """
+        # Get all complainers
+        self.all_complainers = []
+
+        # Check for an __init__.py
+        IS_MODULE = (LOAD_MODULE_PATH / "__init__.py").is_file()
+
+        # get complainers by loading a module with an __init__.py
+        if IS_MODULE:
+            # Get the relative module name
+            load_module = str(LOAD_MODULE_PATH).replace(os.sep, ".")
+
+            # Load the complainers within the module
+            mod = importlib.import_module(load_module)
+            for _, obj in inspect.getmembers(mod, inspect.isclass):
+                if issubclass(obj, Complainer) and obj != Complainer:
+                    # Initialize the item and add it to all complainers
+                    self.all_complainers.append(obj())
+
+        # get complainers by loading a list of files in a directory
+        else:
+            # For all files in the target folder.
+            for file1 in LOAD_MODULE_PATH.iterdir():
+                # If file starts from letter and ends with .py
+                if file1.is_file() and file1.suffix == ".py":
+                    # Import each file as a module from it's full path.
+                    spec = importlib.util.spec_from_file_location(
+                        ".", LOAD_MODULE_PATH.absolute() / file1.name
+                    )
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)  # type: ignore
+
+                    # For each object definition that is a class.
+                    for _, obj in inspect.getmembers(mod, inspect.isclass):
+                        if issubclass(obj, Complainer) and obj != Complainer:
+                            self.all_complainers.append(obj())
+
+        if not self.all_complainers:
+            raise ValueError(
+                f"No Complainers found in module from {LOAD_MODULE_PATH.absolute()}."
+            )
+
+        logger.info(color_txt("Found Complainers:", BColors.OKGREEN))
+        for c in self.all_complainers:
+            logger.info(
+                color_txt(f"  - {type(c).__module__}.{type(c).__name__}", BColors.OKGREEN)
+            )
+
+
+    def __index_files_by_complainer(self, ANALYZE_DIR: Path):
+        """
+        Indexes all the files that each complainer accesses.
+        """
+        logger.info(color_txt(f"Running renag analyzer on '{ANALYZE_DIR}'..", BColors.OKGREEN))
+
+        self.file_to_complainers = defaultdict(set)
+        self.capture_to_complainer = defaultdict(list)
+        self.complainer_to_files = defaultdict(set)
+
+        # Get all the captures and globs of all complainers
+        for complainer in self.all_complainers:
+            # Make sure that glob is not an empty list
+            if not complainer.glob:
+                raise ValueError(f"Empty glob inside {complainer}: {complainer.glob}")
+
+            # Avoid later issue with complainer.capture being empty for the 'Regex' from pyparsing.
+            # Note: Has to do it this early, because below we start mapping it to the complainers by capture.
+            if isinstance(complainer.capture, str) and not complainer.capture:
+                complainer.capture = Empty()
+            elif isinstance(complainer.capture, str):
+                complainer.capture = Regex(
+                    complainer.capture, flags=complainer.regex_options
+                )
+
+            # Map the capture to all complainers
+            self.capture_to_complainer[complainer.capture].append(complainer)
+
+            # Get all the files to analyze
+            all_files: Set[Path] = set()
+            for g in complainer.glob:
+                if not g:
+                    raise ValueError(
+                        f"Empty glob value inside {complainer} ({complainer.glob}): {g}"
+                    )
+                all_files |= set(ANALYZE_DIR.rglob(g))
+
+            if complainer.exclude_glob:
+                for g in complainer.exclude_glob:
+                    if not g:
+                        raise ValueError(
+                            f"Empty exclude glob value inside {complainer} ({complainer.exclude_glob}): {g}"
+                        )
+                    all_files -= set(ANALYZE_DIR.rglob(g))
+
+            # Add all files and captures to the dicts
+            for file1 in all_files:
+                self.file_to_complainers[file1].add(complainer)
+                self.complainer_to_files[complainer].add(file1)
+
+
+def parse_files(staged_only: bool, include_untracked: bool, gitidx: GitIndex, cidx: ComplainerIndex) -> Iterable[Complaint]:
+    """
+    Parses the files using the complainers capture field.
+    Yields the complaints.
+    """
     # Iterate over all captures and globs
-    N_WARNINGS, N_CRITICAL = 0, 0
-    for file2, complainers in all_complainer_files.items():
+    # N_WARNINGS, N_CRITICAL = 0, 0
+    for file2, complainers in cidx.file_to_complainers.items():
         # Check if file is staged for git commit if args.git is true
-        if args.staged and file2 not in staged_files:
+        if staged_only and file2 not in gitidx.staged_files:
             continue
 
         # Check if file is untracked if we are in a git repo
-        if (not args.include_untracked) and (file2.absolute() in untracked_files):
+        if (not include_untracked) and (file2.absolute() in gitidx.untracked_files):
             continue
 
         # Open the file
@@ -233,75 +324,30 @@ def main() -> None:
             capture = complainer.capture
 
             # Then Get all matches in the file
-            logger.debug(f"Parsing file {file2} with complainer {complainer}")
+            logger.debug(f"Parsing file {file2} with complainer {type(complainer)}")
             for match, start, stop in capture.scanString(txt):
 
                 # Then iterate over all complainers
-                for complainer in capture_to_complainer[capture]:
+                for complainer in cidx.capture_to_complainer[capture]:
 
                     # Skip if this file is not specifically globbed by this complainer
-                    if file2 not in complainer_to_files[complainer]:
+                    if file2 not in cidx.complainer_to_files[complainer]:
                         continue
 
-                    complaints = complainer.check(
+                    yield from complainer.check(
                         txt=txt,
                         capture_span=(start, stop),
                         path=file2,
                         capture_data=match,
                     )
 
-                    for complaint in complaints:
-                        if complaint.severity is Severity.CRITICAL:
-                            N_CRITICAL += 1
-                        else:
-                            N_WARNINGS += 1
-
-                        print(
-                            complaint.pformat(
-                                context_nb_lines=context_nb_lines,
-                                inline_mode=args.inline,
-                            ),
-                            end="\n\n",
-                        )
-
     # In the end, we try to call .finalize() on each complainer. Its purpose is
     # to allow for complainers to have methods that will be called once, in the end.
-    for complainer in all_complainers:
+    for complainer in cidx.all_complainers:
         if not hasattr(complainer, "finalize"):
             continue
 
-        complaints = complainer.finalize()
-        for complaint in complaints:
-            if complaint.severity == Severity.CRITICAL:
-                N_CRITICAL += 1
-            else:
-                N_WARNINGS += 1
-
-            print(
-                complaint.pformat(
-                    context_nb_lines=context_nb_lines, inline_mode=args.inline
-                ),
-                end="\n\n",
-            )
-
-    # End by exiting the program
-    N = N_WARNINGS + N_CRITICAL
-    if not N:
-        print(color_txt("Renag finished with no complaints.", BColors.OKGREEN))
-        exit(0)
-
-    print(
-        color_txt(
-            f"{N} Complaints found: {N_WARNINGS} Warnings, {N_CRITICAL} Critical.",
-            BColors.WARNING,
-        )
-    )
-
-    # If has critical errors - exit with non-zero code..
-    if N_CRITICAL != 0:
-        exit(1)
-    # ..else quit early.
-    exit(0)
+        yield from complainer.finalize()
 
 
 if __name__ == "__main__":

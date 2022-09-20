@@ -1,5 +1,6 @@
 """This is the primary class the user will overwrite with their own complainers."""
 
+import logging
 import re
 from pathlib import Path
 from typing import List, Optional, Union
@@ -12,6 +13,8 @@ from renag.custom_types import GlobStr, RegexStr, Severity, Span
 
 class Complainer:
     """Emits errors when it finds specific strings."""
+    #: A logger for debugging purposes.
+    _logger: logging.Logger
 
     #: A regex under which to check the rules of the complaint.
     #: For instance, this could be a variable declaration, or a function definition.
@@ -46,7 +49,7 @@ class Complainer:
 
         Only runs once.
         """
-        pass
+        self._logger = logging.getLogger(__name__)
 
     def check(
         self, txt: str, path: Path, capture_span: Span, capture_data: ParseResults
@@ -83,6 +86,10 @@ class Complainer:
         if not self.__doc__:
             self.__doc__ = f"This error message needs to be replaced via a docstring for this complaint: {type(self)}"
 
+        self._logger.debug(
+            f"Checking {type(self)}: {id(self)} on {path} at {capture_span} with {capture_data}"
+        )
+
         return [
             Complaint(
                 cls=type(self),
@@ -108,6 +115,9 @@ class Complainer:
         List[Complaint]
             A list of complaints.
         """
+        self._logger.debug(
+            f"Finalizing {type(self)}: {id(self)}"
+        )
         return []
 
     def __hash__(self) -> int:
