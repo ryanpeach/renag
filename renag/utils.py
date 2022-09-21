@@ -2,7 +2,7 @@
 
 from typing import List, Optional, Tuple
 
-from renag.custom_types import BColors, Span
+from renag.types.custom_types import BColors, Span
 
 
 def color_txt(txt: str, color: BColors) -> str:
