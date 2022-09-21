@@ -2,29 +2,22 @@
 
 import logging
 import re
+from dataclasses import dataclass
 from pathlib import Path
+
+# REF: https://github.com/python/mypy/issues/6239
 from typing import List, Optional, Union
 
-from pyparsing import ParserElement, ParseResults, Empty, Regex
+from pyparsing import Empty, ParserElement, ParseResults, Regex
 
 from renag.types.complaint import Complaint
 from renag.types.custom_types import GlobStr, RegexStr, Severity, Span
 
-# REF: https://github.com/python/mypy/issues/6239
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from dataclasses import dataclass
-else:
-    from pydantic.dataclasses import dataclass
-
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Complainer:
     """Emits errors when it finds specific strings."""
-
-    #: A logger for debugging purposes.
-    _logger: logging.Logger
 
     #: A regex under which to check the rules of the complaint.
     #: For instance, this could be a variable declaration, or a function definition.
@@ -59,7 +52,7 @@ class Complainer:
 
         Only runs once.
         """
-        self._logger = logging.getLogger(__name__)
+        pass
 
     def check(
         self, txt: str, path: Path, capture_span: Span, capture_data: ParseResults
@@ -96,7 +89,7 @@ class Complainer:
         if not self.__doc__:
             self.__doc__ = f"This error message needs to be replaced via a docstring for this complaint: {type(self)}"
 
-        self._logger.debug(
+        logger.debug(
             f"Checking {type(self)}: {id(self)} on {path} at {capture_span} with {capture_data}"
         )
 
@@ -125,7 +118,7 @@ class Complainer:
         List[Complaint]
             A list of complaints.
         """
-        self._logger.debug(f"Finalizing {type(self)}: {id(self)}")
+        logger.debug(f"Finalizing {type(self)}: {id(self)}")
         return []
 
     def __hash__(self) -> int:

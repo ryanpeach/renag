@@ -2,23 +2,16 @@
 This module runs the code from the commandline.
 """
 import argparse
-import importlib.util
-import inspect
-from logging import Logger
-import os
-from collections import defaultdict
-from pathlib import Path
+import logging
 import sys
-from typing import Dict, Iterable, List, Set, Union
+from logging import Logger
+from pathlib import Path
+from typing import Iterable, Union
 
-from pyparsing import Empty, ParserElement, Regex
-
-from renag.types.complainer import Complainer
+from renag.indexers import ComplainerIndex, GitIndex
 from renag.types.complaint import Complaint
 from renag.types.custom_types import BColors, Severity
 from renag.utils import color_txt
-from renag.indexers import ComplainerIndex, GitIndex
-import logging
 
 
 def get_logger(severity: Union[int, str]) -> Logger:

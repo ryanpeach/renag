@@ -1,18 +1,13 @@
 """The basic Complaint class along with its pretty printing functionality."""
 import textwrap
+from dataclasses import dataclass
 from pathlib import Path
+
+# REF: https://github.com/python/mypy/issues/6239
 from typing import Dict, List, Optional, Type
 
 from renag.types.custom_types import BColors, Note, Severity, Span
 from renag.utils import color_txt, get_line_sep
-
-# REF: https://github.com/python/mypy/issues/6239
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from dataclasses import dataclass
-else:
-    from pydantic.dataclasses import dataclass
 
 
 @dataclass

@@ -1,18 +1,17 @@
-from dataclasses import dataclass
-from importlib.machinery import ModuleSpec
-from typing import Set
-from pathlib import Path
-from renag.types.custom_types import Severity, BColors
-from renag.types.complaint import Complaint
-from renag.types.complainer import Complainer
-from renag.utils import color_txt
 import importlib
 import inspect
-from typing import List, Dict, Iterable, Set
-from pyparsing import Regex, Empty, ParserElement
-from collections import defaultdict
 import logging
 import os
+from collections import defaultdict
+from importlib.machinery import ModuleSpec
+from pathlib import Path
+from typing import Dict, List, Set
+
+from pyparsing import ParserElement
+
+from renag.types.complainer import Complainer
+from renag.types.custom_types import BColors
+from renag.utils import color_txt
 
 try:
     import git
