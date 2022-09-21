@@ -2,7 +2,6 @@
 
 import logging
 import re
-from dataclasses import dataclass
 from pathlib import Path
 
 # REF: https://github.com/python/mypy/issues/6239
@@ -15,7 +14,6 @@ from renag.types.custom_types import GlobStr, RegexStr, Severity, Span
 
 logger = logging.getLogger(__name__)
 
-@dataclass
 class Complainer:
     """Emits errors when it finds specific strings."""
 
@@ -44,7 +42,7 @@ class Complainer:
     #: CRITICAL: Will return exit code 1
     severity: Severity = Severity.CRITICAL
 
-    def __post_init__(self) -> None:
+    def __init__(self) -> None:
         """
         A simple init function that can be used to create private attributes.
 
