@@ -9,7 +9,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 import sys
-from typing import Dict, Iterable, List, Set
+from typing import Dict, Iterable, List, Set, Union
 
 from pyparsing import Empty, ParserElement, Regex
 
@@ -17,17 +17,20 @@ from renag.types.complainer import Complainer
 from renag.types.complaint import Complaint
 from renag.types.custom_types import BColors, Severity
 from renag.utils import color_txt
+from renag.indexers import ComplainerIndex, GitIndex
+import logging
 
 
-def get_logger(severity: Severity) -> Logger:
+def get_logger(severity: Union[int, str]) -> Logger:
     """Returns a logger with the appropriate severity."""
-    import logging
 
     logger = logging.getLogger("renag")
     logger.setLevel(severity)
     return logger
 
-logger = get_logger(Severity.DEBUG)
+
+logger = get_logger("DEBUG")
+
 
 def main() -> None:
     """
@@ -105,7 +108,13 @@ def main() -> None:
 
     # Parse the files and iterate over discovered complaints
     # Print them directly to stderr
-    for complaint in parse_files(staged_only=args.staged, include_untracked=args.include_untracked, gitidx=gitidx, cidx=cidx):
+    N_CRITICAL, N_WARNINGS = 0, 0
+    for complaint in parse_files(
+        staged_only=args.staged,
+        include_untracked=args.include_untracked,
+        gitidx=gitidx,
+        cidx=cidx,
+    ):
         if complaint.severity == Severity.CRITICAL:
             N_CRITICAL += 1
         else:
@@ -136,7 +145,10 @@ def main() -> None:
     # ..else quit quietly.
     exit(0)
 
-def parse_files(staged_only: bool, include_untracked: bool, gitidx: GitIndex, cidx: ComplainerIndex) -> Iterable[Complaint]:
+
+def parse_files(
+    staged_only: bool, include_untracked: bool, gitidx: GitIndex, cidx: ComplainerIndex
+) -> Iterable[Complaint]:
     """
     Parses the files using the complainers capture field.
     Yields the complaints.
@@ -163,7 +175,7 @@ def parse_files(staged_only: bool, include_untracked: bool, gitidx: GitIndex, ci
         # Get the or of all captures
         # Then Iterate over all captures
         for complainer in complainers:
-            capture = complainer.capture
+            capture = complainer.get_pyparsing_capture()
 
             # Then Get all matches in the file
             logger.debug(f"Parsing file {file2} with complainer {type(complainer)}")

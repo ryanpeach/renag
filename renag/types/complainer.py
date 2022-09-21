@@ -5,14 +5,24 @@ import re
 from pathlib import Path
 from typing import List, Optional, Union
 
-from pyparsing import ParserElement, ParseResults
+from pyparsing import ParserElement, ParseResults, Empty, Regex
 
-from renag.complaint import Complaint
-from renag.custom_types import GlobStr, RegexStr, Severity, Span
+from renag.types.complaint import Complaint
+from renag.types.custom_types import GlobStr, RegexStr, Severity, Span
+
+# REF: https://github.com/python/mypy/issues/6239
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dataclasses import dataclass
+else:
+    from pydantic.dataclasses import dataclass
 
 
+@dataclass
 class Complainer:
     """Emits errors when it finds specific strings."""
+
     #: A logger for debugging purposes.
     _logger: logging.Logger
 
@@ -35,13 +45,13 @@ class Complainer:
     exclude_glob: Optional[List[GlobStr]] = None
 
     #: Regex options
-    regex_options: Optional[re.RegexFlag] = re.MULTILINE | re.DOTALL
+    regex_options: Union[re.RegexFlag, int] = 0
 
     #: WARNING: Will return exit code 0, but will still print a warning.
     #: CRITICAL: Will return exit code 1
     severity: Severity = Severity.CRITICAL
 
-    def __init__(self) -> None:
+    def __post_init__(self) -> None:
         """
         A simple init function that can be used to create private attributes.
 
@@ -92,7 +102,7 @@ class Complainer:
 
         return [
             Complaint(
-                cls=type(self),
+                complainer=type(self),
                 file_spans={path: {capture_span: None}},
                 description=self.__doc__,
                 severity=self.severity,
@@ -115,9 +125,7 @@ class Complainer:
         List[Complaint]
             A list of complaints.
         """
-        self._logger.debug(
-            f"Finalizing {type(self)}: {id(self)}"
-        )
+        self._logger.debug(f"Finalizing {type(self)}: {id(self)}")
         return []
 
     def __hash__(self) -> int:
@@ -131,3 +139,14 @@ class Complainer:
             The hash of the complainer by the capture string.
         """
         return hash(self.capture)
+
+    def get_pyparsing_capture(self: "Complainer") -> ParserElement:
+        """
+        Simplify the capture type to a pyparsing ParserElement.
+        Strings get converted to regex.
+        """
+        if not self.capture:
+            return Empty()
+        if isinstance(self.capture, str):
+            return Regex(self.capture, flags=self.regex_options)
+        return self.capture
