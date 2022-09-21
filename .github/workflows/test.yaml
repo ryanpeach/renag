@@ -1,0 +1,65 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+    - main
+    
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: Install Poetry
+        uses: dschep/install-poetry-action@v1.2
+
+      # REF: https://medium.com/@vanflymen/blazing-fast-ci-with-github-actions-poetry-black-and-pytest-9e74299dd4a5
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v1
+        id: cache
+        with:
+          path: ~/.virtualenvs
+          key: poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ hashFiles('**/poetry.lock') }}
+
+      # REF: https://medium.com/@vanflymen/blazing-fast-ci-with-github-actions-poetry-black-and-pytest-9e74299dd4a5
+      - name: Set Poetry config
+        run: |
+          poetry config settings.virtualenvs.in-project false
+          poetry config settings.virtualenvs.path ~/.virtualenvs
+
+      - name: Install Dependencies
+        run: poetry install
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: Code Quality
+        run: poetry run black . --check
+
+      - name: Flake8
+        run: poetry run flake8 renag
+
+      - name: Mypy
+        run: poetry run mypy renag
+
+      - name: Doctest
+        run: poetry run make doctest
+
+      - name: Integration Test
+        run: poetry run renag --load_module examples
+
+      - name: Unit Test with pytest
+        run: poetry run coverage run -m pytest renag
+
+      - name: Codecov
+        uses: codecov/codecov-action@v3
