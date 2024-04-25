@@ -1,3 +1,9 @@
+The reason I am archiving this library is because the approach I used is way too slow when scanning big databases.
+
+Also I have seen this tool https://github.com/semgrep/ which you may want to check out.
+
+However, if I was doing this over, I would do it in rust and implement some kind of YAML config most likely. This was a little more flexible than that, but again it was slow.
+
 # renag
 
 ![TravisCI Build Status](https://travis-ci.com/ryanpeach/renag.svg?branch=master)
