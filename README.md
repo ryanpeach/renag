@@ -1,4 +1,4 @@
-The reason I am archiving this library is because the approach I used is way too slow when scanning big databases.
+The reason I am archiving this library is because the approach I used is way too slow when scanning big repos.
 
 Also I have seen this tool https://github.com/semgrep/ which you may want to check out.
 
