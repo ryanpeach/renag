@@ -2,6 +2,8 @@ The reason I am archiving this library is because the approach I used is way too
 
 Also I have seen this tool https://github.com/semgrep/ which you may want to check out.
 
+Another thing you can do is just use `pytest`, or any languages testing framework, and put it in a subfolder of your code. Write a fixture to get file contents over an iterator. It's much simpler. The power of testing frameworks beyond their standard use is eye opening to me. A lot of these frameworks also provide parallelism out of the box.
+
 However, if I was doing this over, I would do it in rust and implement some kind of YAML config most likely. This was a little more flexible than that, but again it was slow.
 
 # renag
