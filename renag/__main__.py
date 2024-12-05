@@ -162,7 +162,7 @@ def main() -> None:
                 raise ValueError(
                     f"Empty glob value inside {complainer} ({complainer.glob}): {g}"
                 )
-            all_files |= set(analyze_dir.rglob(g))
+            all_files |= set(analyze_dir_f for analyze_dir_f in analyze_dir.rglob(g) if analyze_dir_f.is_file())
 
         if complainer.exclude_glob:
             for g in complainer.exclude_glob:
