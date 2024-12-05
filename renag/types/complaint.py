@@ -1,44 +1,39 @@
 """The basic Complaint class along with its pretty printing functionality."""
 import textwrap
+from dataclasses import dataclass
 from pathlib import Path
+
+# REF: https://github.com/python/mypy/issues/6239
 from typing import Dict, List, Optional, Type
 
-from renag.custom_types import BColors, Note, Severity, Span
+from renag.types.custom_types import BColors, Note, Severity, Span
 from renag.utils import color_txt, get_line_sep
 
 
+@dataclass
 class Complaint:
-    """A single complaint. Used for pretty printing the output."""
+    """
+    A single complaint. Used for pretty printing the output.
 
-    def __init__(
-        self,
-        cls: Type,
-        file_spans: Dict[Path, Dict[Span, Optional[Note]]],
-        description: str,
-        severity: Severity,
-        help: Optional[str] = None,
-    ) -> None:
-        """
-        A single complaint. Used for pretty printing the output.
+    Attributes
+    ----------
+    complainer : Type
+        The class of complainer this complaint comes from.
+    file_spans : Dict[Path, Dict[Span, Optional[Note]]]
+        The spans in all the relevant files along with a note for why they are relevant.
+    description : str
+        The string representation of this complaint.
+    severity : Severity
+        The severity of the complaint.
+    help : Optional[str], optional
+        A string representation of a way to fix the problem.
+    """
 
-        Parameters
-        ----------
-        cls : Type
-            The class of complainer this complaint comes from.
-        file_spans : Dict[Path, Dict[Span, Optional[Note]]]
-            The spans in all the relevant files along with a note for why they are relevant.
-        description : str
-            The string representation of this complaint.
-        severity : Severity
-            The severity of the complaint.
-        help : Optional[str], optional
-            A string representation of a way to fix the problem.
-        """
-        self.cls: Type = cls
-        self.file_spans: Dict[Path, Dict[Span, Optional[Note]]] = file_spans
-        self.description: str = description
-        self.help: Optional[str] = help
-        self.severity: Severity = severity
+    complainer: Type
+    file_spans: Dict[Path, Dict[Span, Optional[Note]]]
+    description: str
+    severity: Severity
+    help: Optional[str]
 
     def pformat(self, context_nb_lines: int = 1, inline_mode: bool = False) -> str:
         """
@@ -59,7 +54,7 @@ class Complaint:
         # The first line is a description of the error as well as the class and severity
         out: List[str] = textwrap.wrap(
             color_txt(
-                f"{self.severity.name} - {self.cls.__name__}: {self.description}",
+                f"{self.severity.name} - {self.complainer.__name__}: {self.description}",
                 BColors.WARNING if self.severity == Severity.WARNING else BColors.FAIL,
             ),
             width=120,
